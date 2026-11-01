@@ -36,7 +36,7 @@ ifeq ($(CONFIG_ARCH_PINEAPPLE), y)
 ifeq ($(CONFIG_ARCH_QTI_VM), y)
     include $(DISPLAY_ROOT)/config/gki_pineappledisptui.conf
     LINUX_INC += -include $(DISPLAY_ROOT)/config/gki_pineappledisptuiconf.h
-else ifeq ($(TARGET_BOARD_PLATFORM), volcano)
+else ifeq ($(BOARD_PLATFORM), volcano)
     include $(DISPLAY_ROOT)/config/gki_volcanodisp.conf
     LINUX_INC += -include $(DISPLAY_ROOT)/config/gki_volcanodispconf.h
 else
@@ -73,12 +73,6 @@ LINUX_INC +=	-I$(DISPLAY_ROOT) \
 	-I$(DISPLAY_ROOT)/msm/dp \
 	-I$(DISPLAY_ROOT)/msm/dsi \
 	-I$(DISPLAY_ROOT)/msm/sde \
-	-I$(DISPLAY_ROOT)/../mm-drivers/hw_fence/include \
-	-I$(DISPLAY_ROOT)/../mm-drivers/msm_ext_display/include \
-	-I$(DISPLAY_ROOT)/../mm-drivers/sync_fence/include \
-	-I$(DISPLAY_ROOT)/../securemsm-kernel \
-	-I$(DISPLAY_ROOT)/../synx-kernel/include/uapi/synx/media \
-	-I$(DISPLAY_ROOT)/../synx-kernel/msm/synx \
 	-I$(DISPLAY_ROOT)/include/uapi/display \
 
 CDEFINES +=	-DANI_LITTLE_BYTE_ENDIAN \
@@ -98,6 +92,9 @@ ccflags-y += $(LINUX_INC)
 ifeq ($(call cc-option-yn, -Wmaybe-uninitialized),y)
 EXTRA_CFLAGS += -Wmaybe-uninitialized
 endif
+
+KBUILD_EXTRA_SYMBOLS +=$(OUT)/obj/sm7635-modules/qcom/opensource/display-drivers/hdcp/Module.symvers
+KBUILD_EXTRA_SYMBOLS +=$(OUT)/obj/sm7635-modules/qcom/opensource/display-drivers/msm/Module.symvers
 
 ifeq ($(call cc-option-yn, -Wheader-guard),y)
 EXTRA_CFLAGS += -Wheader-guard
@@ -268,6 +265,4 @@ msm_drm-$(CONFIG_DRM_MSM) += msm_atomic.o \
 			     msm_gem_vma.o \
 			     msm_smmu.o \
 			     msm_prop.o
-
-CDEFINES += -DBUILD_TIMESTAMP=\"$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')\"
 

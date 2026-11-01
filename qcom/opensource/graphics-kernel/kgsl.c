@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2008-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * Copyright (c) 2022-2024, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <uapi/linux/sched/types.h>
@@ -348,7 +348,6 @@ static void kgsl_destroy_ion(struct kgsl_memdesc *memdesc)
 	}
 
 	memdesc->sgt = NULL;
-	entry->priv_data = NULL;
 }
 
 static const struct kgsl_memdesc_ops kgsl_dmabuf_ops = {
@@ -2943,12 +2942,7 @@ static int memdesc_sg_virt(struct kgsl_device *device, struct kgsl_memdesc *memd
 		goto out;
 	}
 
-#if (KERNEL_VERSION(6, 4, 0) <= LINUX_VERSION_CODE)
-	npages = get_user_pages(useraddr, sglen, write, pages);
-#else
 	npages = get_user_pages(useraddr, sglen, write, pages, NULL);
-#endif
-
 	mmap_read_unlock(current->mm);
 
 	ret = (npages < 0) ? (int)npages : 0;
@@ -4714,9 +4708,9 @@ static unsigned long _gpu_set_svm_region(struct kgsl_process_private *private,
 	return addr;
 }
 
-static unsigned long get_align(struct kgsl_mem_entry *entry)
+unsigned long kgsl_get_align(struct kgsl_memdesc *memdesc)
 {
-	int bit = kgsl_memdesc_get_align(&entry->memdesc);
+	u32 bit = kgsl_memdesc_get_align(memdesc);
 
 	if (bit >= ilog2(SZ_2M))
 		return SZ_2M;
@@ -4725,7 +4719,7 @@ static unsigned long get_align(struct kgsl_mem_entry *entry)
 	else if (bit >= ilog2(SZ_64K))
 		return SZ_64K;
 
-	return SZ_4K;
+	return PAGE_SIZE;
 }
 
 static unsigned long set_svm_area(struct file *file,
@@ -4758,7 +4752,7 @@ static unsigned long get_svm_unmapped_area(struct file *file,
 {
 	struct kgsl_device_private *dev_priv = file->private_data;
 	struct kgsl_process_private *private = dev_priv->process_priv;
-	unsigned long align = get_align(entry);
+	unsigned long align = kgsl_get_align(&entry->memdesc);
 	unsigned long ret, iova;
 	u64 start = 0, end = 0;
 	struct vm_area_struct *vma;
@@ -5105,7 +5099,7 @@ static int _register_device(struct kgsl_device *device)
 	device->dev->dma_mask = &dma_mask;
 	device->dev->dma_parms = &dma_parms;
 
-	dma_set_max_seg_size(device->dev, (u32)DMA_BIT_MASK(32));
+	dma_set_max_seg_size(device->dev, DMA_BIT_MASK(32));
 
 	set_dma_ops(device->dev, NULL);
 
@@ -5337,11 +5331,8 @@ int __init kgsl_core_init(void)
 		goto err;
 	}
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
-	kgsl_driver.class = class_create("kgsl");
-#else
 	kgsl_driver.class = class_create(THIS_MODULE, "kgsl");
-#endif
+
 	if (IS_ERR(kgsl_driver.class)) {
 		result = PTR_ERR(kgsl_driver.class);
 		pr_err("kgsl: failed to create class for kgsl\n");

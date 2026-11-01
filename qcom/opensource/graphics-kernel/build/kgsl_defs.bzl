@@ -62,6 +62,8 @@ def kgsl_get_srcs():
         "adreno_snapshot.c",
         "adreno_sysfs.c",
         "adreno_trace.c",
+        "governor_msm_adreno_tz.c",
+        "governor_gpubw_mon.c",
         "kgsl.c",
         "kgsl_bus.c",
         "kgsl_drawobj.c",
@@ -93,8 +95,7 @@ def external_deps(target, variant):
     # Add msm_hw_fence in the dependency and defconfig lists for targets that use it
     if target in [ "pineapple" ]:
         deplist = deplist + [
-            "//vendor/qcom/opensource/mm-drivers/hw_fence:{}_msm_hw_fence".format(tv),
-            "//vendor/qcom/opensource/mm-drivers/hw_fence:hw_fence_headers".format(tv)
+            "//vendor/qcom/opensource/mm-drivers/hw_fence:{}_msm_hw_fence".format(tv)
             ]
         defconfigs = defconfigs + [
             "//vendor/qcom/opensource/mm-drivers/hw_fence:defconfig"
@@ -135,8 +136,6 @@ def define_target_variant_module(target, variant):
             "CONFIG_QCOM_KGSL_PROCESS_RECLAIM": { True: [ "kgsl_reclaim.c" ] },
             "CONFIG_QCOM_KGSL_USE_SHMEM": { False: [ "kgsl_pool.c" ] },
             "CONFIG_SYNC_FILE": { True: [ "kgsl_sync.c" ] },
-            "CONFIG_DEVFREQ_GOV_QCOM_ADRENO_TZ": { False: [ "governor_msm_adreno_tz.c" ] },
-            "CONFIG_DEVFREQ_GOV_QCOM_GPUBW_MON": { False: [ "governor_gpubw_mon.c" ] }
         },
         deps = [ "//msm-kernel:all_headers" ] + ext_deps,
         includes = ["include", "."],

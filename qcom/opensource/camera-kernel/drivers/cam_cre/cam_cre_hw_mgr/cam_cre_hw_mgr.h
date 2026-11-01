@@ -100,10 +100,7 @@ struct cam_cre_ctx_clk_info {
 	uint32_t reserved;
 	int32_t clk_rate[CAM_MAX_VOTE];
 	uint32_t num_paths;
-	union {
-		struct cam_cpas_axi_per_path_bw_vote axi_path[CAM_CRE_MAX_PER_PATH_VOTES];
-		__DECLARE_FLEX_ARRAY(struct cam_cpas_axi_per_path_bw_vote, axi_path_flex);
-	};
+	struct cam_cpas_axi_per_path_bw_vote axi_path[CAM_CRE_MAX_PER_PATH_VOTES];
 };
 
 /**
@@ -138,10 +135,7 @@ struct cam_cre_clk_info {
 	uint32_t threshold;
 	uint32_t over_clked;
 	uint32_t num_paths;
-	union {
-		struct cam_cpas_axi_per_path_bw_vote axi_path[CAM_CRE_MAX_PER_PATH_VOTES];
-		__DECLARE_FLEX_ARRAY(struct cam_cpas_axi_per_path_bw_vote, axi_path_flex);
-	};
+	struct cam_cpas_axi_per_path_bw_vote axi_path[CAM_CRE_MAX_PER_PATH_VOTES];
 	uint32_t hw_type;
 	struct cam_req_mgr_timer *watch_dog;
 	uint32_t watch_dog_reset_counter;
@@ -262,10 +256,7 @@ struct cam_cre_clk_bw_req_internal_v2 {
 	uint32_t rt_flag;
 	uint32_t reserved;
 	uint32_t num_paths;
-	union {
-		struct cam_cpas_axi_per_path_bw_vote axi_path[CAM_CRE_MAX_PER_PATH_VOTES];
-		__DECLARE_FLEX_ARRAY(struct cam_cpas_axi_per_path_bw_vote, axi_path_flex);
-	};
+	struct cam_cpas_axi_per_path_bw_vote axi_path[CAM_CRE_MAX_PER_PATH_VOTES];
 };
 
 /**

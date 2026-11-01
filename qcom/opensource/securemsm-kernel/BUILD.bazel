@@ -4,7 +4,7 @@ package(
     ],
 )
 
-load("//build/kernel/kleaf:kernel.bzl", "ddk_headers")
+load("//build/kernel/kleaf:kernel.bzl", "ddk_headers", "ddk_uapi_headers")
 
 ddk_headers(
     name = "smcinvoke_kernel_headers",
@@ -18,8 +18,6 @@ ddk_headers(
         "include/smci/interface/smci_opener.h",
         "include/linux/ITrustedCameraDriver.h",
         "include/linux/CTrustedCameraDriver.h",
-        "include/linux/trusted_camera_driver.h",
-        "include/linux/ctrusted_camera_driver.h",
     ]),
     includes = [
         "include",
@@ -34,7 +32,6 @@ ddk_headers(
     hdrs = glob([
         "include/uapi/linux/qseecom.h",
         "include/uapi/linux/qseecom_api.h",
-        "include/uapi/linux/qseecom_32bit_impl.h",
         "linux/misc/qseecom_kernel.h",
         "linux/misc/qseecom_priv.h",
         "linux/misc/qseecomi.h",
@@ -67,7 +64,7 @@ ddk_headers(
         "include/uapi/linux/*.h",
         "crypto-qti/*.h"
     ]),
-    includes = ["linux", "include/uapi", "include/uapi/linux", "crypto-qti"]
+    includes = ["include/uapi", "include/uapi/linux", "crypto-qti"]
 )
 
 ddk_headers(
@@ -80,28 +77,35 @@ ddk_headers(
     includes = [".", "smmu-proxy"],
 )
 
+filegroup(
+    name = "_securemsm_uapi_headers",
+    srcs = glob([
+        "include/uapi/linux/*.h",
+        "smmu-proxy/include/uapi/linux/*.h",
+    ]),
+)
+
+ddk_uapi_headers(
+    name = "msm_securemsm_ddk_uapi_headers",
+    srcs = [
+        ":_securemsm_uapi_headers",
+    ],
+    out = "securemsm-uapi-headers.tar.gz",
+        kernel_build = "//:target_kernel_build",
+)
+
 load(":build/pineapple.bzl", "define_pineapple")
+load(":build/anorak.bzl", "define_anorak")
 load(":build/blair.bzl", "define_blair")
 load(":build/sun.bzl", "define_sun")
 load(":build/niobe.bzl", "define_niobe")
 load(":build/monaco.bzl", "define_monaco")
-load(":build/pitti.bzl", "define_pitti")
-load(":build/parrot.bzl", "define_parrot")
-load(":build/canoe.bzl", "define_canoe")
-load(":build/sdxkova.bzl", "define_sdxkova")
-load(":build/sa510m.bzl", "define_sa510m")
-load(":build/sa510m-1g.bzl", "define_sa510m_1g")
-load(":build/autoghgvm.bzl", "define_autoghgvm")
+load(":build/neo.bzl", "define_neo")
 
 define_pineapple()
+define_anorak()
 define_blair()
 define_niobe()
 define_monaco()
 define_sun()
-define_pitti()
-define_parrot()
-define_canoe()
-define_sdxkova()
-define_sa510m()
-define_sa510m_1g()
-define_autoghgvm()
+define_neo()

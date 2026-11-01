@@ -1,5 +1,5 @@
 /* Copyright (c) 2013-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -30,7 +30,7 @@ struct rmnet_map_control_command {
 			__be16 flow_control_seq_num;
 			__be32 qos_id;
 		} flow_control;
-		DECLARE_FLEX_ARRAY(u8, data);
+		u8 data[0];
 	};
 }  __aligned(1);
 
@@ -196,14 +196,14 @@ struct rmnet_map_dl_ind_hdr {
 			u32 bytes;
 			u32 pkts;
 			u32 flows;
-			struct rmnet_map_flow_info_le flow[];
+			struct rmnet_map_flow_info_le flow[0];
 		} le __aligned(1);
 		struct {
 			__be32 seq;
 			__be32 bytes;
 			__be32 pkts;
 			__be32 flows;
-			struct rmnet_map_flow_info_be flow[];
+			struct rmnet_map_flow_info_be flow[0];
 		} be __aligned(1);
 	} __aligned(1);
 } __aligned(1);

@@ -5,12 +5,6 @@ HDCP_PATH = "hdcp"
 QCEDEV_PATH = "crypto-qti"
 QRNG_PATH = "qrng"
 SMMU_PROXY_PATH = "smmu-proxy"
-QCEDEV_FE_PATH="qcedev_fe"
-SI_CORE_TEST_PATH = "securemsm_tests/si_core_tests"
-SECCAM_PATH = "securemsm_tests/seccam_test_driver"
-HDCP_TEST_PATH="securemsm_tests/hdcp2p2_test"
-TORNADO_MOD_PATH="securemsm_tests/tornado_mod"
-QSEECOM_ENABLED=False
 
 # This dictionary holds all the securemsm-kernel  modules included by calling register_securemsm_module
 securemsm_modules = {}
@@ -60,37 +54,25 @@ register_securemsm_module(
     default_srcs = [
         "qseecom.c",
         "ice.h",
-        "qseecom_32bit_impl.c"
     ],
     deps = [":qseecom_kernel_headers"],
     #srcs = ["config/sec-kernel_defconfig_qseecom.h"],
     #copts = ["-include", "config/sec-kernel_defconfig_qseecom.h"],
 )
 
+
 register_securemsm_module(
     name = "smcinvoke_dlkm",
     path = SMCINVOKE_PATH,
     default_srcs = [
+        "smcinvoke.c",
+        "smcinvoke_kernel.c",
+        "trace_smcinvoke.h",
         "IQSEEComCompat.h",
         "smci_qseecomcompat.h",
         "IQSEEComCompatAppLoader.h",
         "smci_qseecomcompatapploader.h",
     ],
-    config_srcs = {
-        "CONFIG_QCOM_SI_CORE": {
-            True: [
-                "si_core_xts/qseecom.c",
-                "si_core_xts/smci_kernel.c",
-                "si_core_xts/smci.c",
-                "si_core_xts/smci_impl.h"
-            ],
-            False: [
-                "compat/smcinvoke.c",
-                "compat/smcinvoke_kernel.c",
-                "compat/trace_smcinvoke.h",
-            ],
-        }
-    },
     deps = [":smcinvoke_kernel_headers", ":qseecom_kernel_headers", "%b_qseecom_dlkm"],
     hdrs = [":smcinvoke_kernel_headers"],
 )
@@ -150,8 +132,7 @@ register_securemsm_module(
     path = QCEDEV_PATH,
     default_srcs = [
                 "qcedev.c",
-                "qcedev_smmu.c",
-                "compat_qcedev.c"],
+                "qcedev_smmu.c"],
     deps = [":qcedev_local_headers",
             "%b_qce50_dlkm"],
 )
@@ -177,52 +158,3 @@ register_securemsm_module(
     srcs = ["qti-smmu-proxy-pvm.c", "qti-smmu-proxy-common.c"],
     deps = ["%b_smcinvoke_dlkm", ":smmu_proxy_headers"],
 )
-
-register_securemsm_module(
-    name = "qcedev_fe_dlkm",
-    path = QCEDEV_FE_PATH,
-    srcs = [
-                "qcedev_fe.c",
-                "qcedev_smmu.c"],
-    deps = [":qcedev_fe_local_headers"],
-)
-
-# ------------------------------------ SECUREMSM TEST MODULE DEFINITIONS ---------------------------------
-register_securemsm_module(
-    name = "si_core_test",
-    path = SI_CORE_TEST_PATH,
-    default_srcs = ["si_core_test.c"],
-)
-
-register_securemsm_module(
-    name = "hdcp2p2_test",
-    path = HDCP_TEST_PATH,
-    default_srcs = [
-                "hdcp2p2_test.c",
-                "hdcp2p2_test.h",],
-    deps = [":smcinvoke_kernel_headers", ":hdcp_qseecom_dlkm", "%b_smcinvoke_dlkm", "%b_hdcp_qseecom_dlkm"],
-    srcs = ["config/sec-kernel_defconfig.h"],
-    copts = [
-        "-include",
-        "config/sec-kernel_defconfig.h",
-    ],
-)
-
-register_securemsm_module(
-    name = "tornado_mod",
-    path = TORNADO_MOD_PATH,
-    srcs = [
-                "tornado_mod.c",
-                "tornado_mod.h",],
-)
-
-register_securemsm_module(
-    name = "seccam_test_driver",
-    path = SECCAM_PATH,
-    srcs = [
-                "seccam_test_driver.c",
-                "scm_wrapper.h",
-                "seccam_test_driver.h",],
-    deps = [":smcinvoke_kernel_headers", ":%b_smcinvoke_dlkm", ":smmu_proxy_headers", "%b_smmu_proxy_dlkm"],
-)
-

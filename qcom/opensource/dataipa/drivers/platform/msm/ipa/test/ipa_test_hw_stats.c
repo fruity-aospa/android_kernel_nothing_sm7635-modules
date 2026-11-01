@@ -209,9 +209,9 @@ static int ipa_test_hw_stats_add_FnR(void *priv)
 	rt_rule->commit = 1;
 	rt_rule->ip = IPA_IP_v4;
 	rt_lookup.ip = rt_rule->ip;
-	strscpy(rt_rule->rt_tbl_name, "V4_RT_TO_USB_CONS",
+	strlcpy(rt_rule->rt_tbl_name, "V4_RT_TO_USB_CONS",
 		IPA_RESOURCE_NAME_MAX);
-	strscpy(rt_lookup.name, rt_rule->rt_tbl_name, IPA_RESOURCE_NAME_MAX);
+	strlcpy(rt_lookup.name, rt_rule->rt_tbl_name, IPA_RESOURCE_NAME_MAX);
 	rt_rule->num_rules = 1;
 	((struct ipa_rt_rule_add_v2 *)
 	rt_rule->rules)[0].rule.dst = IPA_CLIENT_USB_CONS;
@@ -243,9 +243,9 @@ static int ipa_test_hw_stats_add_FnR(void *priv)
 	rt_rule->commit = 1;
 	rt_rule->ip = IPA_IP_v6;
 	rt_lookup.ip = rt_rule->ip;
-	strscpy(rt_rule->rt_tbl_name, "V6_RT_TO_USB_CONS",
+	strlcpy(rt_rule->rt_tbl_name, "V6_RT_TO_USB_CONS",
 		IPA_RESOURCE_NAME_MAX);
-	strscpy(rt_lookup.name, rt_rule->rt_tbl_name, IPA_RESOURCE_NAME_MAX);
+	strlcpy(rt_lookup.name, rt_rule->rt_tbl_name, IPA_RESOURCE_NAME_MAX);
 	rt_rule->num_rules = 1;
 	((struct ipa_rt_rule_add_v2 *)
 	rt_rule->rules)[0].rule.dst = IPA_CLIENT_USB_CONS;
@@ -277,9 +277,9 @@ static int ipa_test_hw_stats_add_FnR(void *priv)
 	rt_rule->commit = 1;
 	rt_rule->ip = IPA_IP_v4;
 	rt_lookup.ip = rt_rule->ip;
-	strscpy(rt_rule->rt_tbl_name, "V4_RT_TO_ODU_CONS",
+	strlcpy(rt_rule->rt_tbl_name, "V4_RT_TO_ODU_CONS",
 		IPA_RESOURCE_NAME_MAX);
-	strscpy(rt_lookup.name, rt_rule->rt_tbl_name, IPA_RESOURCE_NAME_MAX);
+	strlcpy(rt_lookup.name, rt_rule->rt_tbl_name, IPA_RESOURCE_NAME_MAX);
 	rt_rule->num_rules = 1;
 	((struct ipa_rt_rule_add_v2 *)
 	rt_rule->rules)[0].rule.dst = IPA_CLIENT_ODU_EMB_CONS;
@@ -311,9 +311,9 @@ static int ipa_test_hw_stats_add_FnR(void *priv)
 	rt_rule->commit = 1;
 	rt_rule->ip = IPA_IP_v6;
 	rt_lookup.ip = rt_rule->ip;
-	strscpy(rt_rule->rt_tbl_name, "V6_RT_TO_ODU_CONS",
+	strlcpy(rt_rule->rt_tbl_name, "V6_RT_TO_ODU_CONS",
 		IPA_RESOURCE_NAME_MAX);
-	strscpy(rt_lookup.name, rt_rule->rt_tbl_name, IPA_RESOURCE_NAME_MAX);
+	strlcpy(rt_lookup.name, rt_rule->rt_tbl_name, IPA_RESOURCE_NAME_MAX);
 	rt_rule->num_rules = 1;
 	((struct ipa_rt_rule_add_v2 *)
 	rt_rule->rules)[0].rule.dst = IPA_CLIENT_ODU_EMB_CONS;
@@ -754,7 +754,7 @@ static int ipa_test_hw_stats_query_drop_stats(void *priv)
                        ipahal_get_ep_bit(ep_idx)))
                        continue;
 
-               IPA_UT_INFO("Client %u pkt_cnt %u bytes cnt %u\n", i,
+               IPA_UT_INFO("Client %u pkt_cnt %u bytes cnt %llu\n", i,
                        query->client[i].drop_packet_cnt, query->client[i].drop_byte_cnt);
        }
 

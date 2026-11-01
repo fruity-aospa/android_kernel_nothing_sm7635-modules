@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2021-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  * Copyright (c) 2015-2021, The Linux Foundation. All rights reserved.
  */
 
@@ -1176,7 +1176,7 @@ static int _sde_encoder_phys_wb_validate_output_fmt(struct sde_encoder_phys *phy
 
 	fmt = sde_get_sde_format_ext(fb->format->format, fb->modifier);
 	if (!fmt) {
-		SDE_ERROR("[enc:%d wb:%d] invalid output pixel format:0x%x mod:0x%llx\n",
+		SDE_ERROR("[enc:%d wb:%d] invalid output pixel format:0x%x mod:0x%x\n",
 				DRMID(phys_enc->parent), WBID(wb_enc),
 				fb->format->format, fb->modifier);
 		return -EINVAL;
@@ -1188,7 +1188,7 @@ static int _sde_encoder_phys_wb_validate_output_fmt(struct sde_encoder_phys *phy
 
 	ret = sde_format_validate_fmt(&sde_kms->base, fmt, format_list);
 	if (ret) {
-		SDE_ERROR("[enc:%d wb:%d] unsupport format for wb rotate:%d fmt:0x%x mod:0x%llx\n",
+		SDE_ERROR("[enc:%d wb:%d] unsupported format for wb rotate:%d fmt:0x%x mod:0x%x\n",
 				DRMID(phys_enc->parent), WBID(wb_enc), rotation_type,
 				fb->format->format, fb->modifier);
 		return ret;
@@ -1252,12 +1252,6 @@ static int sde_encoder_phys_wb_atomic_check(struct sde_encoder_phys *phys_enc,
 		return -EINVAL;
 	}
 
-	if (phys_enc->parent->crtc != NULL && phys_enc->parent->crtc != crtc_state->crtc) {
-		SDE_ERROR("invalid crtc_id:%d connected to wb:%d, expected crtc_id:%d\n",
-			DRMID(phys_enc->parent->crtc), WBID(wb_enc), DRMID(crtc_state->crtc));
-		return -EAGAIN;
-	}
-
 	memset(&wb_roi, 0, sizeof(struct sde_rect));
 
 	rc = sde_wb_connector_state_get_output_roi(conn_state, &wb_roi);
@@ -1278,7 +1272,7 @@ static int sde_encoder_phys_wb_atomic_check(struct sde_encoder_phys *phys_enc,
 
 	fmt = sde_get_sde_format_ext(fb->format->format, fb->modifier);
 	if (!fmt) {
-		SDE_ERROR("[enc:%d wb:%d] invalid output pixel format:0x%x mod:0x%llx\n",
+		SDE_ERROR("[enc:%d wb:%d] invalid output pixel format:0x%x mod:0x%x\n",
 				DRMID(phys_enc->parent), WBID(wb_enc),
 				fb->format->format, fb->modifier);
 		return -EINVAL;
@@ -1291,7 +1285,7 @@ static int sde_encoder_phys_wb_atomic_check(struct sde_encoder_phys *phys_enc,
 
         rc = _sde_encoder_phys_wb_validate_output_fmt(phys_enc, fb, rotation_type);
 	if (rc) {
-		SDE_ERROR("[enc:%d wb:%d] output fmt failed fb:%u fmt:0x%x mod:0x%llx rot:%d",
+		SDE_ERROR("[enc:%d wb:%d] output fmt failed fb:%u fmt:0x%x mod:0x%x rot:%d",
 				 DRMID(phys_enc->parent), WBID(wb_enc), fb->base.id,
 				 fb->format->format, fb->modifier, rotation_type);
 		return rc;
@@ -2000,11 +1994,12 @@ static void sde_encoder_phys_wb_irq_ctrl(struct sde_encoder_phys *phys, bool ena
 	 * For Dedicated CWB, only one overflow IRQ is used for
 	 * both the PP_CWB blks. Make sure only one IRQ is registered
 	 * when D-CWB is enabled.
-	 * For targets where DCWB and CWB support is not needed,
-	 * reset irq table to avoid registration of unsupported irqs.
 	 */
 	wb_cfg = wb_enc->hw_wb->caps;
-	if (wb_cfg->features & BIT(SDE_WB_HAS_CWB)) {
+	if (wb_cfg->features & BIT(SDE_WB_HAS_DCWB)) {
+		max_num_of_irqs = 1;
+		irq_table = dcwb_irq_tbl;
+	} else {
 		max_num_of_irqs = CRTC_DUAL_MIXERS_ONLY;
 		irq_table = cwb_irq_tbl;
 	}
@@ -2019,12 +2014,6 @@ static void sde_encoder_phys_wb_irq_ctrl(struct sde_encoder_phys *phys, bool ena
 		for (index = 0; index < max_num_of_irqs; index++)
 			if (irq_table[index + pp] != SDE_NONE)
 				sde_encoder_helper_register_irq(phys, irq_table[index + pp]);
-
-		/* Register overflow IRQ for associated Dedicated CWB */
-		if (phys->hw_pp->dcwb_idx == DCWB_0 || phys->hw_pp->dcwb_idx == DCWB_1)
-			sde_encoder_helper_register_irq(phys, INTR_IDX_PP_CWB_OVFL);
-		else if (phys->hw_pp->dcwb_idx == DCWB_2 || phys->hw_pp->dcwb_idx == DCWB_3)
-			sde_encoder_helper_register_irq(phys, INTR_IDX_PP_CWB2_OVFL);
 	} else if (!enable && atomic_dec_return(&phys->wbirq_refcount) == 0) {
 		sde_encoder_helper_unregister_irq(phys, INTR_IDX_WB_DONE);
 		sde_encoder_helper_unregister_irq(phys, INTR_IDX_CTL_START);
@@ -2035,12 +2024,6 @@ static void sde_encoder_phys_wb_irq_ctrl(struct sde_encoder_phys *phys, bool ena
 		for (index = 0; index < max_num_of_irqs; index++)
 			if (irq_table[index + pp] != SDE_NONE)
 				sde_encoder_helper_unregister_irq(phys, irq_table[index + pp]);
-
-		/* Unregister overflow IRQ for associated Dedicated CWB */
-		if (phys->hw_pp->dcwb_idx == DCWB_0 || phys->hw_pp->dcwb_idx == DCWB_1)
-			sde_encoder_helper_unregister_irq(phys, INTR_IDX_PP_CWB_OVFL);
-		else if (phys->hw_pp->dcwb_idx == DCWB_2 || phys->hw_pp->dcwb_idx == DCWB_3)
-			sde_encoder_helper_unregister_irq(phys, INTR_IDX_PP_CWB2_OVFL);
 	}
 }
 

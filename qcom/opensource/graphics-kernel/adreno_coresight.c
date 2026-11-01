@@ -144,7 +144,7 @@ static void _adreno_coresight_set(struct adreno_device *adreno_dev,
 }
 
 /* Generic function to enable coresight debug bus on adreno devices */
-static int _adreno_coresight_enable(struct coresight_device *csdev,
+static int adreno_coresight_enable(struct coresight_device *csdev,
 				struct perf_event *event, u32 mode)
 {
 	struct adreno_coresight_device *adreno_csdev = dev_get_drvdata(&csdev->dev);
@@ -175,20 +175,6 @@ static int _adreno_coresight_enable(struct coresight_device *csdev,
 	return ret;
 }
 
-#if (KERNEL_VERSION(6, 4, 0) >= LINUX_VERSION_CODE)
-static int adreno_coresight_enable(struct coresight_device *csdev,
-				struct perf_event *event, u32 mode)
-{
-	return _adreno_coresight_enable(csdev, event, mode);
-}
-#else
-static int adreno_coresight_enable(struct coresight_device *csdev,
-				struct perf_event *event, enum cs_mode mode)
-{
-	return _adreno_coresight_enable(csdev, event, mode);
-}
-#endif
-
 void adreno_coresight_stop(struct adreno_device *adreno_dev)
 {
 	_adreno_coresight_get_and_clear(adreno_dev, &adreno_dev->gx_coresight);
@@ -201,19 +187,15 @@ void adreno_coresight_start(struct adreno_device *adreno_dev)
 	_adreno_coresight_set(adreno_dev, &adreno_dev->cx_coresight);
 }
 
-#if (KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE)
 static int adreno_coresight_trace_id(struct coresight_device *csdev)
 {
 	struct adreno_coresight_device *adreno_csdev = dev_get_drvdata(&csdev->dev);
 
 	return adreno_csdev->atid;
 }
-#endif
 
 static const struct coresight_ops_source adreno_coresight_source_ops = {
-#if (KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE)
 	.trace_id = adreno_coresight_trace_id,
-#endif
 	.enable = adreno_coresight_enable,
 	.disable = adreno_coresight_disable,
 };
@@ -231,13 +213,8 @@ void adreno_coresight_remove(struct adreno_device *adreno_dev)
 		coresight_unregister(adreno_dev->cx_coresight.dev);
 }
 
-#if (KERNEL_VERSION(6, 4, 0) >= LINUX_VERSION_CODE)
 static int funnel_gfx_enable(struct coresight_device *csdev, int inport,
 			 int outport)
-#else
-static int funnel_gfx_enable(struct coresight_device *csdev, struct coresight_connection *inport,
-		struct coresight_connection *outport)
-#endif
 {
 	struct kgsl_device *device = kgsl_get_device(0);
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
@@ -261,13 +238,8 @@ err:
 	return ret;
 }
 
-#if (KERNEL_VERSION(6, 4, 0) >= LINUX_VERSION_CODE)
 static void funnel_gfx_disable(struct coresight_device *csdev, int inport,
 			   int outport)
-#else
-static void funnel_gfx_disable(struct coresight_device *csdev, struct coresight_connection *inport,
-		struct coresight_connection *outport)
-#endif
 {
 	struct kgsl_device *device = kgsl_get_device(0);
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
@@ -306,15 +278,13 @@ static void adreno_coresight_dev_probe(struct kgsl_device *device,
 {
 	struct platform_device *pdev = of_find_device_by_node(node);
 	struct coresight_desc desc;
-	u32 atid = 0;
+	u32 atid;
 
 	if (!pdev)
 		return;
 
-#if (KERNEL_VERSION(6, 2, 0) >= LINUX_VERSION_CODE)
 	if (of_property_read_u32(node, "coresight-atid", &atid))
 		return;
-#endif
 
 	if (of_property_read_string(node, "coresight-name", &desc.name))
 		return;

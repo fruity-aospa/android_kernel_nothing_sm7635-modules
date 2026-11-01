@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2017-2019, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #ifndef _CAM_HFI_SESSION_DEFS_H
@@ -66,10 +66,7 @@ struct mem_map_region_data {
 struct hfi_cmd_ipe_bps_map {
 	uint64_t                   user_data;
 	uint32_t                   mem_map_request_num;
-	union {
-		struct mem_map_region_data mem_map_region_sets[1];
-		__DECLARE_FLEX_ARRAY(struct mem_map_region_data, mem_map_region_sets_flex);
-	};
+	struct mem_map_region_data mem_map_region_sets[1];
 } __packed;
 
 /**
@@ -93,10 +90,7 @@ struct hfi_cmd_ipe_bps_map_ack {
  */
 struct abort_data {
 	uint32_t num_req_ids;
-	union {
-		uint32_t num_req_id[1];
-		__DECLARE_FLEX_ARRAY(uint32_t, num_req_id_flex);
-	};
+	uint32_t num_req_id[1];
 };
 
 /**
@@ -187,15 +181,9 @@ struct hfi_cmd_dev_async {
 	uint64_t user_data1;
 	uint64_t user_data2;
 	uint32_t num_fw_handles;
+	uint32_t fw_handles[1];
 	union {
-		uint32_t fw_handles[1];
-		__DECLARE_FLEX_ARRAY(uint32_t, fw_handles_flex);
-	};
-	union {
-		union {
-			uint32_t direct[1];
-			__DECLARE_FLEX_ARRAY(uint32_t, direct_flex);
-		};
+		uint32_t direct[1];
 		uint32_t indirect;
 	} payload;
 } __packed;
@@ -241,10 +229,7 @@ struct hfi_msg_dev_async_ack {
 	uint64_t user_data1;
 	uint64_t user_data2;
 	uint32_t err_type;
-	union {
-		uint32_t msg_data[1];
-		__DECLARE_FLEX_ARRAY(uint32_t, msg_data_flex);
-	};
+	uint32_t msg_data[1];
 } __packed;
 
 /**

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2015-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * Copyright (c) 2022-2024, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/of.h>
@@ -2457,7 +2457,7 @@ static int cam_soc_util_get_gpio_info(struct cam_hw_soc_info *soc_info)
 		return -EINVAL;
 	}
 
-	gpio_array_size = cam_get_gpio_counts(soc_info);
+	gpio_array_size = of_gpio_count(of_node);
 
 	if (gpio_array_size <= 0)
 		return 0;
@@ -2471,7 +2471,7 @@ static int cam_soc_util_get_gpio_info(struct cam_hw_soc_info *soc_info)
 	}
 
 	for (i = 0; i < gpio_array_size; i++) {
-		gpio_array[i] = cam_get_named_gpio(soc_info, i);
+		gpio_array[i] = of_get_gpio(of_node, i);
 		CAM_DBG(CAM_UTIL, "gpio_array[%d] = %d", i, gpio_array[i]);
 	}
 
@@ -3685,9 +3685,9 @@ static int cam_soc_util_dump_cont_reg_range(
 		if (rc)
 			continue;
 
-		dump_out_buf->dump_data_flex[write_idx++] = reg_read->offset +
+		dump_out_buf->dump_data[write_idx++] = reg_read->offset +
 			(i * sizeof(uint32_t));
-		dump_out_buf->dump_data_flex[write_idx++] =
+		dump_out_buf->dump_data[write_idx++] =
 			cam_soc_util_r(soc_info, base_idx,
 			(reg_read->offset + (i * sizeof(uint32_t))));
 		dump_out_buf->bytes_written += (2 * sizeof(uint32_t));
@@ -3767,9 +3767,9 @@ static int cam_soc_util_dump_dmi_reg_range(
 		cam_soc_util_w_mb(soc_info, base_idx,
 			dmi_read->pre_read_config[i].offset,
 			dmi_read->pre_read_config[i].value);
-		dump_out_buf->dump_data_flex[write_idx++] =
+		dump_out_buf->dump_data[write_idx++] =
 			dmi_read->pre_read_config[i].offset;
-		dump_out_buf->dump_data_flex[write_idx++] =
+		dump_out_buf->dump_data[write_idx++] =
 			dmi_read->pre_read_config[i].value;
 		dump_out_buf->bytes_written += (2 * sizeof(uint32_t));
 	}
@@ -3779,9 +3779,9 @@ static int cam_soc_util_dump_dmi_reg_range(
 		"dmi_data_read");
 	if (!rc) {
 		for (i = 0; i < dmi_read->dmi_data_read.num_values; i++) {
-			dump_out_buf->dump_data_flex[write_idx++] =
+			dump_out_buf->dump_data[write_idx++] =
 				dmi_read->dmi_data_read.offset;
-			dump_out_buf->dump_data_flex[write_idx++] =
+			dump_out_buf->dump_data[write_idx++] =
 				cam_soc_util_r_mb(soc_info, base_idx,
 				dmi_read->dmi_data_read.offset);
 			dump_out_buf->bytes_written += (2 * sizeof(uint32_t));
@@ -3848,8 +3848,7 @@ static int cam_soc_util_dump_dmi_reg_range_user_buf(
 		goto end;
 	}
 	remain_len = buf_len - dump_args->offset;
-	min_len = sizeof(struct cam_hw_soc_dump_header) +
-		(dmi_read->num_pre_writes * 2 * sizeof(uint32_t)) +
+	min_len = (dmi_read->num_pre_writes * 2 * sizeof(uint32_t)) +
 		(dmi_read->dmi_data_read.num_values * 2 * sizeof(uint32_t)) +
 		sizeof(uint32_t);
 	if (remain_len < min_len) {
@@ -4016,7 +4015,7 @@ static int cam_soc_util_user_reg_dump(
 	}
 	for (i = 0; i < reg_dump_desc->num_read_range; i++) {
 
-		reg_read_info = &reg_dump_desc->read_range_flex[i];
+		reg_read_info = &reg_dump_desc->read_range[i];
 		if (reg_read_info->type ==
 				CAM_REG_DUMP_READ_TYPE_CONT_RANGE) {
 			rc = cam_soc_util_dump_cont_reg_range_user_buf(
@@ -4144,10 +4143,10 @@ int cam_soc_util_reg_dump_to_cmd_buf(void *ctx,
 		req_id, ctx, reg_input_info->num_dump_sets);
 	for (i = 0; i < reg_input_info->num_dump_sets; i++) {
 		if ((cmd_in_data_end - cmd_buf_start) <= (uintptr_t)
-			reg_input_info->dump_set_offsets_flex[i]) {
+			reg_input_info->dump_set_offsets[i]) {
 			CAM_ERR(CAM_UTIL,
 				"Invalid dump set offset: [%pK], cmd_buf_start: [%pK] cmd_in_data_end: [%pK]",
-				(uintptr_t)reg_input_info->dump_set_offsets_flex[i],
+				(uintptr_t)reg_input_info->dump_set_offsets[i],
 				cmd_buf_start, cmd_in_data_end);
 			rc = -EINVAL;
 			goto end;
@@ -4155,7 +4154,7 @@ int cam_soc_util_reg_dump_to_cmd_buf(void *ctx,
 
 		reg_dump_desc = (struct cam_reg_dump_desc *)
 			(cmd_buf_start +
-			(uintptr_t)reg_input_info->dump_set_offsets_flex[i]);
+			(uintptr_t)reg_input_info->dump_set_offsets[i]);
 		if ((reg_dump_desc->num_read_range > 1) &&
 			(sizeof(struct cam_reg_read_info) > ((U32_MAX -
 			sizeof(struct cam_reg_dump_desc)) /
@@ -4250,7 +4249,7 @@ int cam_soc_util_reg_dump_to_cmd_buf(void *ctx,
 			CAM_DBG(CAM_UTIL,
 				"Number of bytes written to cmd buffer: %u req_id: %llu",
 				dump_out_buf->bytes_written, req_id);
-			reg_read_info = &reg_dump_desc->read_range_flex[j];
+			reg_read_info = &reg_dump_desc->read_range[j];
 			if (reg_read_info->type ==
 				CAM_REG_DUMP_READ_TYPE_CONT_RANGE) {
 				rc = cam_soc_util_dump_cont_reg_range(soc_info,

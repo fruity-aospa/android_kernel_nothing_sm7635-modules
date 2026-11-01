@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2012-2021, The Linux Foundation. All rights reserved.
- *
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/device.h>
@@ -193,7 +191,7 @@ static int ipa3_nat_ipv6ct_mmap(
 			if (dev->phys_mem_size == 0 ||
 				dev->phys_mem_size > vsize) {
 				IPAERR_RL(
-				 "%s err vsize(0x%lX) phys_mem_size(0x%X)\n",
+				 "%s err vsize(0x%X) phys_mem_size(0x%X)\n",
 				 dev->name, vsize, dev->phys_mem_size);
 				result = -EINVAL;
 				goto unlock;
@@ -207,7 +205,7 @@ static int ipa3_nat_ipv6ct_mmap(
 
 		if (nmi == IPA_NAT_MEM_IN_DDR) {
 
-			IPADBG("map sz=0x%zx -> vma size=0x%08lx\n",
+			IPADBG("map sz=0x%zx -> vma size=0x%08x\n",
 				   mld_ptr->table_alloc_size,
 				   vsize);
 
@@ -230,7 +228,7 @@ static int ipa3_nat_ipv6ct_mmap(
 
 		} else { /* nmi == IPA_NAT_MEM_IN_SRAM */
 
-			IPADBG("map phys_mem_size(0x%08X) -> vma sz(0x%08lX)\n",
+			IPADBG("map phys_mem_size(0x%08X) -> vma sz(0x%08X)\n",
 				   dev->phys_mem_size, vsize);
 
 			vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
@@ -271,7 +269,7 @@ static int ipa3_nat_ipv6ct_mmap(
 		IPADBG("Mapping V6 CT: %s\n",
 			   ipa3_nat_mem_in_as_str(IPA_NAT_MEM_IN_DDR));
 
-		IPADBG("map sz=0x%zx -> vma size=0x%08lx\n",
+		IPADBG("map sz=0x%zx -> vma size=0x%08x\n",
 			   dev->table_alloc_size,
 			   vsize);
 
@@ -360,9 +358,9 @@ static int ipa3_nat_ipv6ct_init_device(
 		goto bail;
 	}
 
-	strscpy(dev->name, name, IPA_DEV_NAME_MAX_LEN);
+	strlcpy(dev->name, name, IPA_DEV_NAME_MAX_LEN);
 
-	dev->class = class_create(name);
+	dev->class = class_create(THIS_MODULE, name);
 
 	if (IS_ERR(dev->class)) {
 		IPAERR("unable to create the class for %s\n", name);
@@ -596,7 +594,7 @@ static int ipa3_nat_ipv6ct_allocate_mem(
 			 * CAN fit in SRAM, hence we'll use SRAM...
 			 * And SRAM allowed
 			 */
-			IPADBG("V4 NAT with size 0x%08lX will reside in: %s\n",
+			IPADBG("V4 NAT with size 0x%08X will reside in: %s\n",
 				   table_alloc->size,
 				   ipa3_nat_mem_in_as_str(IPA_NAT_MEM_IN_SRAM));
 
@@ -639,7 +637,7 @@ static int ipa3_nat_ipv6ct_allocate_mem(
 			/*
 			 * CAN NOT fit in SRAM OR SRAM not allowed, hence we'll allocate DDR...
 			 */
-			IPADBG("V4 NAT with size 0x%08lX will reside in: %s\n",
+			IPADBG("V4 NAT with size 0x%08X will reside in: %s\n",
 				   table_alloc->size,
 				   ipa3_nat_mem_in_as_str(IPA_NAT_MEM_IN_DDR));
 
@@ -672,7 +670,7 @@ static int ipa3_nat_ipv6ct_allocate_mem(
 	} else {
 		if (nat_type == IPAHAL_NAT_IPV6CT) {
 
-			IPADBG("V6 CT with size 0x%08lX will reside in: %s\n",
+			IPADBG("V6 CT with size 0x%08X will reside in: %s\n",
 				   table_alloc->size,
 				   ipa3_nat_mem_in_as_str(IPA_NAT_MEM_IN_DDR));
 
@@ -743,7 +741,7 @@ int ipa3_allocate_nat_table(
 
 	int result;
 
-	IPADBG("table size:%lu offset:%lu\n",
+	IPADBG("table size:%u offset:%u\n",
 		   table_alloc->size, table_alloc->offset);
 
 	mutex_lock(&nm_ptr->dev.lock);
@@ -988,7 +986,7 @@ static inline bool chk_sram_offset_alignment(
 	u32       mask)
 {
 	if (addr & (uintptr_t) mask) {
-		IPAERR("sram addr(%luK) is not properly aligned\n", addr);
+		IPAERR("sram addr(%pK) is not properly aligned\n", addr);
 		return false;
 	}
 	return true;

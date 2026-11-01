@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2012-2021, The Linux Foundation. All rights reserved.
- *
  * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
@@ -9134,10 +9133,10 @@ int ipa_cfg_ep_ctrl(u32 clnt_hdl, const struct ipa_ep_cfg_ctrl *ep_ctrl)
 		result = gsi_flow_control_ee(ep->gsi_chan_hdl, clnt_hdl, 0,
 				ep_ctrl->ipa_ep_delay, primary_secondry, &code);
 		if (result == GSI_STATUS_SUCCESS) {
-			IPADBG("flow control sussess gsi ch %lu with code %d\n",
+			IPADBG("flow control sussess gsi ch %d with code %d\n",
 					ep->gsi_chan_hdl, code);
 		} else {
-			IPADBG("failed to flow control gsi ch %lu code %d\n",
+			IPADBG("failed to flow control gsi ch %d code %d\n",
 					ep->gsi_chan_hdl, code);
 		}
 		return 0;
@@ -10796,6 +10795,9 @@ static void ipa3_tag_free_skb(void *user1, int user2)
 }
 
 #define REQUIRED_TAG_PROCESS_DESCRIPTORS 4
+#define MAX_RETRY_ALLOC 10
+#define ALLOC_MIN_SLEEP_RX 100000
+#define ALLOC_MAX_SLEEP_RX 200000
 
 /* ipa3_tag_process() - Initiates a tag process. Incorporates the input
  * descriptors
@@ -10830,7 +10832,6 @@ int ipa3_tag_process(struct ipa3_desc desc[],
 	int req_num_tag_desc = REQUIRED_TAG_PROCESS_DESCRIPTORS;
 	struct ipa_mem_buffer cmd;
 	u32 offset = 0;
-	uint8_t retry_count = 0;
 
 	memset(&cmd, 0, sizeof(struct ipa_mem_buffer));
 	/**
@@ -10857,12 +10858,7 @@ int ipa3_tag_process(struct ipa3_desc desc[],
 	}
 	sys = ipa3_ctx->ep[ep_idx].sys;
 
-	for (retry_count = 0; retry_count < MAX_RETRY_ALLOC; retry_count++) {
-		tag_desc = kzalloc(sizeof(*tag_desc) * IPA_TAG_MAX_DESC, GFP_KERNEL);
-		if (tag_desc)
-			break;
-		usleep_range(ALLOC_MIN_SLEEP_RX, ALLOC_MAX_SLEEP_RX);
-	}
+	tag_desc = kzalloc(sizeof(*tag_desc) * IPA_TAG_MAX_DESC, GFP_KERNEL);
 	if (!tag_desc) {
 		IPAERR("failed to allocate memory\n");
 		return -ENOMEM;
@@ -10903,7 +10899,7 @@ int ipa3_tag_process(struct ipa3_desc desc[],
 			&reg_write_coal_close, false);
 		if (!cmd_pyld) {
 			IPAERR("failed to construct coal close IC\n");
-			res = -EINVAL;
+			res = -ENOMEM;
 			goto fail_free_tag_desc;
 		}
 		ipa3_init_imm_cmd_desc(&tag_desc[desc_idx], cmd_pyld);
@@ -10914,13 +10910,8 @@ int ipa3_tag_process(struct ipa3_desc desc[],
 	if (ipa3_ctx->ulso_wa) {
 		/* dummary regsiter read IC with HPS clear*/
 		cmd.size = 4;
-		for (retry_count = 0; retry_count < MAX_RETRY_ALLOC; retry_count++) {
-			cmd.base = dma_alloc_coherent(ipa3_ctx->pdev, cmd.size,
-				&cmd.phys_base, GFP_KERNEL);
-			if (cmd.base)
-				break;
-			usleep_range(ALLOC_MIN_SLEEP_RX, ALLOC_MAX_SLEEP_RX);
-		}
+		cmd.base = dma_alloc_coherent(ipa3_ctx->pdev, cmd.size,
+			&cmd.phys_base, GFP_KERNEL);
 		if (cmd.base == NULL) {
 			res = -ENOMEM;
 			goto fail_free_desc;
@@ -10936,7 +10927,7 @@ int ipa3_tag_process(struct ipa3_desc desc[],
 			&dummy_reg_read, false);
 		if (!cmd_pyld) {
 			IPAERR("failed to construct DUMMY READ IC\n");
-			res = -EINVAL;
+			res = -ENOMEM;
 			goto fail_free_desc;
 		}
 		ipa3_init_imm_cmd_desc(&tag_desc[desc_idx], cmd_pyld);
@@ -10968,7 +10959,7 @@ int ipa3_tag_process(struct ipa3_desc desc[],
 		IPA_IMM_CMD_IP_PACKET_INIT, &pktinit_cmd, false);
 	if (!cmd_pyld) {
 		IPAERR("failed to construct ip_packet_init imm cmd\n");
-		res = -EINVAL;
+		res = -ENOMEM;
 		goto fail_free_desc;
 	}
 	ipa3_init_imm_cmd_desc(&tag_desc[desc_idx], cmd_pyld);
@@ -10982,7 +10973,7 @@ int ipa3_tag_process(struct ipa3_desc desc[],
 		IPA_IMM_CMD_IP_PACKET_TAG_STATUS, &status, false);
 	if (!cmd_pyld) {
 		IPAERR("failed to construct ip_packet_tag_status imm cmd\n");
-		res = -EINVAL;
+		res = -ENOMEM;
 		goto fail_free_desc;
 	}
 	ipa3_init_imm_cmd_desc(&tag_desc[desc_idx], cmd_pyld);
@@ -10990,12 +10981,7 @@ int ipa3_tag_process(struct ipa3_desc desc[],
 	tag_desc[desc_idx].user1 = cmd_pyld;
 	++desc_idx;
 
-	for (retry_count = 0; retry_count < MAX_RETRY_ALLOC; retry_count++) {
-		comp = kzalloc(sizeof(*comp), GFP_KERNEL);
-		if (comp)
-			break;
-		usleep_range(ALLOC_MIN_SLEEP_RX, ALLOC_MAX_SLEEP_RX);
-	}
+	comp = kzalloc(sizeof(*comp), GFP_KERNEL);
 	if (!comp) {
 		IPAERR("no mem\n");
 		res = -ENOMEM;
@@ -11007,12 +10993,7 @@ int ipa3_tag_process(struct ipa3_desc desc[],
 	atomic_set(&comp->cnt, 2);
 
 	/* dummy packet to send to IPA. packet payload is a completion object */
-	for (retry_count = 0; retry_count < MAX_RETRY_ALLOC; retry_count++) {
-		dummy_skb = alloc_skb(sizeof(comp), GFP_KERNEL);
-		if (dummy_skb)
-			break;
-		usleep_range(ALLOC_MIN_SLEEP_RX, ALLOC_MAX_SLEEP_RX);
-	}
+	dummy_skb = alloc_skb(sizeof(comp), GFP_KERNEL);
 	if (!dummy_skb) {
 		IPAERR("failed to allocate memory\n");
 		res = -ENOMEM;
@@ -12345,7 +12326,7 @@ static int __ipa_stop_gsi_channel(u32 clnt_hdl)
 		res = ipa3_uc_client_del_holb_monitor(ep->gsi_chan_hdl,
 							IPA_EE_AP);
 		if (res)
-			IPAERR("Delete HOLB monitor failed for ch %lu\n",
+			IPAERR("Delete HOLB monitor failed for ch %d\n",
 					ep->gsi_chan_hdl);
 		/* Set HOLB back if it was set previously.
 		 * There is a possibility that uC will reset as part of HOLB
@@ -12550,9 +12531,9 @@ static int _ipa_suspend_resume_pipe(enum ipa_client_type client, bool suspend)
 
 	if (IPA_CLIENT_IS_APPS_PROD(client) ||
 		(client == IPA_CLIENT_APPS_WAN_CONS &&
-		 IPA_CLIENT_IS_MAPPED_VALID(IPA_CLIENT_APPS_WAN_COAL_CONS, wan_coal_ep_idx)) ||
+		 IPA_CLIENT_IS_MAPPED(IPA_CLIENT_APPS_WAN_COAL_CONS, wan_coal_ep_idx)) ||
 		(client == IPA_CLIENT_APPS_LAN_CONS &&
-		 IPA_CLIENT_IS_MAPPED_VALID(IPA_CLIENT_APPS_LAN_COAL_CONS, lan_coal_ep_idx)))
+		 IPA_CLIENT_IS_MAPPED(IPA_CLIENT_APPS_LAN_COAL_CONS, lan_coal_ep_idx)))
 		return 0;
 
 	if (suspend) {

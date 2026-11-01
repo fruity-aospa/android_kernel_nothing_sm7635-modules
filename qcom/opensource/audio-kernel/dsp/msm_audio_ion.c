@@ -16,7 +16,6 @@
 #include <linux/dma-buf.h>
 #include <linux/iosys-map.h>
 #include <linux/platform_device.h>
-#include <linux/of_platform.h>
 #include <linux/of_device.h>
 #include <linux/export.h>
 #include <linux/ioctl.h>
@@ -29,9 +28,8 @@
 #endif
 #include <dsp/msm_audio_ion.h>
 #include <linux/msm_audio.h>
-#include <linux/firmware/qcom/qcom_scm.h>
+#include <linux/qcom_scm.h>
 #include <soc/qcom/secure_buffer.h>
-#include <linux/of.h>
 
 MODULE_IMPORT_NS(DMA_BUF);
 
@@ -607,7 +605,7 @@ static int msm_audio_hyp_unassign(struct msm_audio_fd_data *msm_audio_fd_data)
 		ret = qcom_scm_assign_mem(msm_audio_fd_data->paddr, msm_audio_fd_data->plen,
 			&src_vmid_unmap_list, dst_vmids_unmap, ARRAY_SIZE(dst_vmids_unmap));
 		if (ret < 0) {
-			pr_err("%s: qcom assign unmap failed result = %d addr = 0x%llx size = %zu\n",
+			pr_err("%s: qcom assign unmap failed result = %d addr = 0x%pK size = %d\n",
 			__func__, ret, msm_audio_fd_data->paddr, msm_audio_fd_data->plen);
 		}
 		msm_audio_fd_data->hyp_assign = false;
@@ -750,7 +748,7 @@ static long msm_audio_ion_ioctl(struct file *file, unsigned int ioctl_num,
 		ret = qcom_scm_assign_mem(paddr, pa_len, &src_vmid_map_list,
 		                      dst_vmids_map, ARRAY_SIZE(dst_vmids_map));
 		if (ret < 0) {
-			pr_err("%s: qcom_assign failed result = %d addr = 0x%llx size = %lu\n",
+			pr_err("%s: qcom_assign failed result = %d addr = 0x%pK size = %d\n",
 					__func__, ret, paddr, pa_len);
 			return ret;
 		}
@@ -766,7 +764,7 @@ static long msm_audio_ion_ioctl(struct file *file, unsigned int ioctl_num,
 		ret = qcom_scm_assign_mem(paddr, pa_len, &src_vmid_unmap_list,
 		                      dst_vmids_unmap, ARRAY_SIZE(dst_vmids_unmap));
 		if (ret < 0) {
-			pr_err("%s: qcom scm unassign failed result = %d addr = 0x%llx size = %lu\n",
+			pr_err("%s: qcom scm unassign failed result = %d addr = 0x%pK size = %d\n",
 					__func__, ret, paddr, pa_len);
 			return ret;
 		}
@@ -820,7 +818,8 @@ static int msm_audio_ion_reg_chrdev(struct msm_audio_ion_private *ion_data)
 		return ret;
 	}
 	pr_debug("%s major number %d", __func__, MAJOR(ion_data->ion_major));
-	ion_data->ion_class = class_create(ion_data->driver_name);
+	ion_data->ion_class = class_create(THIS_MODULE,
+					ion_data->driver_name);
 	if (IS_ERR(ion_data->ion_class)) {
 		ret = PTR_ERR(ion_data->ion_class);
 		pr_err("%s class create failed. ret : %d", __func__, ret);

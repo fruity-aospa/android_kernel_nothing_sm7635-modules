@@ -14,7 +14,6 @@
 #include <linux/ratelimit.h>
 #include <linux/slab.h>
 #include <linux/fs.h>
-#include <linux/version.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
@@ -41,12 +40,8 @@ int btfm_get_bt_soc_index(int chipset_ver)
 	case QCA_GANGES_SOC_ID_0200:
 		return GANGES;
 	case QCA_EVROS_SOC_ID_0100:
-	case QCA_EVROS_SOC_ID_0101:
-	case QCA_EVROS_SOC_ID_0102:
-	case QCA_EVROS_SOC_ID_0103:
-	case QCA_EVROS_SOC_ID_0104:
-	case QCA_EVROS_SOC_ID_0105:
 	case QCA_EVROS_SOC_ID_0200:
+	case QCA_EVROS_SOC_ID_0104:
 		return EVROS;
 	default:
 		BTFMSWR_ERR("no BT SOC id defined, returning EVROS");
@@ -232,11 +227,7 @@ static int btfm_swr_probe(struct swr_device *pdev)
 		goto register_err;
 	}
 
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
-	btfm_swr_class = class_create("btfmswr-dev");
-#else
 	btfm_swr_class = class_create(THIS_MODULE, "btfmswr-dev");
-#endif
 	if (IS_ERR(btfm_swr_class)) {
 		BTFMSWR_ERR("%s: coudn't create class\n", __func__);
 		ret = -1;

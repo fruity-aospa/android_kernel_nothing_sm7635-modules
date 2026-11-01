@@ -13,10 +13,4 @@ ddk_headers(
     includes = ["include"]
 )
 
-ddk_headers(
-    name = "sync_fence_headers",
-    hdrs = glob(["include/*.h"]),
-    includes = ["include"]
-)
-
 define_sync_fence()

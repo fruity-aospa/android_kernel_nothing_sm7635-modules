@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
 * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
-* Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
 */
 
 #include <linux/types.h>	/* u32 */
@@ -355,7 +355,7 @@ static ssize_t channel_write_gsi(struct file *filp, const char __user *buf,
 	struct gsi_xfer_elem gsi_xfer;
 
 	if (count > (RX_BUFF_SIZE))
-		IPATEST_ERR("-----PROBLEM----- count=%zu RX_BUFF_SIZE=%lu\n",
+		IPATEST_ERR("-----PROBLEM----- count=%zu RX_BUFF_SIZE=%d\n",
 		count, RX_BUFF_SIZE);
 
 	/* Copy the data from the user and transmit */
@@ -535,7 +535,7 @@ int create_channel_device_by_type(
 
 	channel_dev = *channel_dev_ptr;
 
-	strscpy(channel_dev->name, name, MAX_CHANNEL_NAME);
+	strlcpy(channel_dev->name, name, MAX_CHANNEL_NAME);
 
 	/* Allocate memory data buffer for the pipe */
 	IPATEST_DBG(":-----Allocate memory data buffer-----\n");
@@ -555,8 +555,7 @@ int create_channel_device_by_type(
 	/* Add a pointer from the channel device to the test context info */
 	channel_dev->test = ipa_test;
 
-	channel_dev->class = class_create(channel_dev->name);
-
+	channel_dev->class = class_create(THIS_MODULE, channel_dev->name);
 	if (IS_ERR(channel_dev->class)) {
 		IPATEST_ERR(":class_create() err.\n");
 		ret = -ENOMEM;
@@ -1266,7 +1265,7 @@ int configure_ipa_endpoint(struct ipa_ep_cfg *ipa_ep_cfg,
 	rt_rule->commit = 1;
 	rt_rule->num_rules = 1;
 	rt_rule->ip = IPA_IP_v4;
-	strscpy(rt_rule->rt_tbl_name,
+	strlcpy(rt_rule->rt_tbl_name,
 			DEFAULT_ROUTING_TABLE_NAME,
 			IPA_RESOURCE_NAME_MAX);
 	rt_rule_entry = &rt_rule->rules[0];
@@ -1290,7 +1289,7 @@ int configure_ipa_endpoint(struct ipa_ep_cfg *ipa_ep_cfg,
 		also increment an internal reference count. */
 	memset(&rt_lookup, 0, sizeof(struct ipa_ioc_get_rt_tbl));
 	rt_lookup.ip = IPA_IP_v4;
-	strscpy(rt_lookup.name,
+	strlcpy(rt_lookup.name,
 			DEFAULT_ROUTING_TABLE_NAME,
 			IPA_RESOURCE_NAME_MAX);
 	if (ipa3_get_rt_tbl(&rt_lookup)) {
@@ -2685,10 +2684,8 @@ int exception_hdl_init(void)
 		IPATEST_ERR("alloc_chrdev_region failed (%d)\n", res);
 		return res;
 	}
-
 	p_exception_hdl_data->class =
-			class_create(EXCEPTION_DRV_NAME);
-
+			class_create(THIS_MODULE, EXCEPTION_DRV_NAME);
 	p_exception_hdl_data->dev =
 			device_create(p_exception_hdl_data->class
 					, NULL, p_exception_hdl_data->dev_num,
@@ -4785,8 +4782,8 @@ static int __init ipa_test_init(void)
 	ipa_test->signature = TEST_SIGNATURE;
 	ipa_test->current_configuration_idx = -1;
 
-	ipa_test_class = class_create(IPA_TEST_DRV_NAME);
-	
+	ipa_test_class = class_create(THIS_MODULE, IPA_TEST_DRV_NAME);
+
 	ret = alloc_chrdev_region(&ipa_test->dev_num, 0, 1, IPA_TEST_DRV_NAME);
 	if (ret) {
 		IPATEST_ERR("alloc_chrdev_region err.\n");

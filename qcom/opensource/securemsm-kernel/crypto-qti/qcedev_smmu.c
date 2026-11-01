@@ -3,7 +3,6 @@
  * Qti (or) Qualcomm Technologies Inc CE device driver.
  *
  * Copyright (c) 2018-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/dma-mapping.h>
@@ -14,7 +13,6 @@
 #include "qcedev_smmu.h"
 #include "soc/qcom/secure_buffer.h"
 #include <linux/mem-buf.h>
-#include <linux/version.h>
 
 static int qcedev_setup_context_bank(struct context_bank_info *cb,
 				struct device *dev)
@@ -162,11 +160,7 @@ static int ion_map_buffer(struct qcedev_handle *qce_hndl,
 
 		/* Get the scatterlist for the given attachment */
 		attach->dma_map_attrs |= DMA_ATTR_DELAYED_UNMAP;
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
-		table = dma_buf_map_attachment_unlocked(attach, DMA_BIDIRECTIONAL);
-#else
 		table = dma_buf_map_attachment(attach, DMA_BIDIRECTIONAL);
-#endif
 		if (IS_ERR_OR_NULL(table)) {
 			rc = PTR_ERR(table) ?: -ENOMEM;
 			pr_err("%s: err: failed to map table\n", __func__);
@@ -203,11 +197,7 @@ static int ion_map_buffer(struct qcedev_handle *qce_hndl,
 	return 0;
 
 map_sg_err:
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
-	dma_buf_unmap_attachment_unlocked(attach, table, DMA_BIDIRECTIONAL);
-#else
 	dma_buf_unmap_attachment(attach, table, DMA_BIDIRECTIONAL);
-#endif
 map_table_err:
 	dma_buf_detach(buf, attach);
 map_err:
@@ -221,13 +211,8 @@ static int ion_unmap_buffer(struct qcedev_handle *qce_hndl,
 	struct dma_mapping_info *mapping_info = &binfo->ion_buf.mapping_info;
 
 	if (is_iommu_present(qce_hndl)) {
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
-		dma_buf_unmap_attachment_unlocked(mapping_info->attach,
-			mapping_info->table, DMA_BIDIRECTIONAL);
-#else
 		dma_buf_unmap_attachment(mapping_info->attach,
 			mapping_info->table, DMA_BIDIRECTIONAL);
-#endif
 		dma_buf_detach(mapping_info->buf, mapping_info->attach);
 		dma_buf_put(mapping_info->buf);
 
@@ -350,7 +335,7 @@ int qcedev_check_and_map_buffer(void *handle,
 	}
 
 	if (!found) {
-                /* Add buffer mapping information to regd buffer list */
+	        /* Add buffer mapping information to regd buffer list */
                 mutex_lock(&qce_hndl->registeredbufs.lock);
                 list_add_tail(&binfo->list, &qce_hndl->registeredbufs.list);
                 mutex_unlock(&qce_hndl->registeredbufs.lock);

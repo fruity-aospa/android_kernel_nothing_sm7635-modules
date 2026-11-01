@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2002,2007-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * Copyright (c) 2022-2023, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 #ifndef __KGSL_MMU_H
 #define __KGSL_MMU_H
@@ -173,8 +173,6 @@ enum kgsl_mmu_feature {
 	KGSL_MMU_SUPPORT_VBO,
 	/** @KGSL_MMU_PAGEFAULT_TERMINATE: Set to make pagefaults fatal */
 	KGSL_MMU_PAGEFAULT_TERMINATE,
-	/** @KGSL_MMU_LLCC_NWA: Set to make no write allocate the default LLCC policy */
-	KGSL_MMU_FORCE_LLCC_NWA,
 };
 
 #include "kgsl_iommu.h"

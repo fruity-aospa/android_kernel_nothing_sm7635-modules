@@ -10,7 +10,6 @@
 #include <linux/slab.h>
 #include <linux/gpio.h>
 #include <linux/of_gpio.h>
-#include <linux/pinctrl/consumer.h>
 #include <linux/pwm.h>
 #include <linux/string.h>
 #include <video/mipi_display.h>
@@ -673,7 +672,7 @@ int dsi_panel_set_lhbm_state(struct dsi_panel *panel, unsigned long fp_status)
 	mutex_unlock(&panel->panel_lock);
 
 	if (update)
-		nt_display_update_lhbm_state(fp_status);
+		nt_display_update_lcm_state_to_fingerprint(fp_status);
 
 	return rc;
 }
@@ -3811,7 +3810,7 @@ static int dsi_panel_parse_calib_data(struct dsi_panel *panel,
 		token = strsep(&raw_calib_data, "\n");
 		rc = kstrtoint(token, 16, &val);
 		if (rc) {
-			DSI_ERR("Error converting %d: %s, aborting calibration data\n",
+			DSI_ERR("Error converting %s: %d, aborting calibration data\n",
 					rc, token);
 			kvfree(panel->calib_data.data);
 			panel->calib_data.data = NULL;
@@ -3840,7 +3839,7 @@ static int dsi_panel_load_calib_data(struct dsi_panel *panel,
 	if (ret)
 		return ret;
 
-	DSI_INFO("found calibration data for %s display, size: %zu\n",
+	DSI_INFO("found calibration data for %s display, size: %llu\n",
 				panel->type, fw->size);
 	fw_size = fw->size;
 

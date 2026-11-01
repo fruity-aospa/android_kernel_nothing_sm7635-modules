@@ -374,7 +374,7 @@ struct ol_tx_log_queue_state_var_sz_t {
 	uint32_t active_bitmap;
 	uint16_t credit;
 	uint8_t num_cats_active;
-	QDF_FLEX_ARRAY(uint8_t, data);
+	uint8_t data[1];
 };
 
 struct ol_tx_log_queue_add_t {

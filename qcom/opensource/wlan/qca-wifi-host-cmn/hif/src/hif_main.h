@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2013-2021 The Linux Foundation. All rights reserved.
- * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * Copyright (c) 2021-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -218,12 +218,12 @@ struct hif_latency_detect {
 	qdf_time_t credit_report_time;
 };
 #endif
+
 /*
  * Note: For MCL, #if defined (HIF_CONFIG_SLUB_DEBUG_ON) needs to be checked
  * for defined here
  */
-#if defined(HIF_CONFIG_SLUB_DEBUG_ON) || defined(HIF_CE_DEBUG_DATA_BUF) ||\
-	defined(RECORD_DP_CE_EVTS)
+#if defined(HIF_CONFIG_SLUB_DEBUG_ON) || defined(HIF_CE_DEBUG_DATA_BUF)
 
 #define HIF_CE_MAX_LATEST_HIST 2
 #define HIF_CE_MAX_LATEST_EVTS 2
@@ -244,9 +244,6 @@ struct ce_desc_hist {
 	uint8_t ce_id_hist_map[CE_COUNT_MAX];
 	bool enable[CE_COUNT_MAX];
 	bool data_enable[CE_COUNT_MAX];
-#ifdef RECORD_DP_CE_EVTS
-	uint64_t evt_mask[CE_COUNT_MAX];
-#endif
 	qdf_mutex_t ce_dbg_datamem_lock[CE_COUNT_MAX];
 	uint32_t hist_index;
 	uint32_t hist_id;
@@ -258,7 +255,7 @@ void hif_record_latest_evt(struct ce_desc_hist *ce_hist,
 			   uint8_t type,
 			   int ce_id, uint64_t time,
 			   uint32_t hp, uint32_t tp);
-#endif /*HIF_CONFIG_SLUB_DEBUG_ON || HIF_CE_DEBUG_DATA_BUF|| RECORD_DP_CE_EVTS*/
+#endif /*defined(HIF_CONFIG_SLUB_DEBUG_ON) || defined(HIF_CE_DEBUG_DATA_BUF)*/
 
 /**
  * struct hif_cfg() - store ini config parameters in hif layer
@@ -443,12 +440,9 @@ struct hif_softc {
  * Note: For MCL, #if defined (HIF_CONFIG_SLUB_DEBUG_ON) needs to be checked
  * for defined here
  */
-#if defined(HIF_CONFIG_SLUB_DEBUG_ON) || defined(HIF_CE_DEBUG_DATA_BUF) ||\
-	defined(RECORD_DP_CE_EVTS)
+#if defined(HIF_CONFIG_SLUB_DEBUG_ON) || defined(HIF_CE_DEBUG_DATA_BUF)
 	struct ce_desc_hist hif_ce_desc_hist;
-#endif /* defined(HIF_CONFIG_SLUB_DEBUG_ON) || defined(HIF_CE_DEBUG_DATA_BUF) ||
-	* defined(RECORD_DP_CE_EVTS)
-	*/
+#endif /*defined(HIF_CONFIG_SLUB_DEBUG_ON) || defined(HIF_CE_DEBUG_DATA_BUF)*/
 #ifdef IPA_OFFLOAD
 	qdf_shared_mem_t *ipa_ce_ring;
 #endif

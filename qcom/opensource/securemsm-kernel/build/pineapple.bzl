@@ -12,10 +12,7 @@ def define_pineapple():
             "qrng_dlkm",
             "qcrypto-msm_dlkm",
             "smmu_proxy_dlkm",
-            "qseecom_dlkm",
-            "seccam_test_driver",
-            "hdcp2p2_test",
-            "tornado_mod",
+            "qseecom_dlkm"
         ],
         extra_options = [
             "CONFIG_QCOM_SMCINVOKE",

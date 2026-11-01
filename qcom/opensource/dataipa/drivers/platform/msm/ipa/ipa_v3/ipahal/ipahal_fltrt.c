@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2012-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include "ipa.h"
@@ -13,7 +13,6 @@
 #include "ipahal_fltrt_i.h"
 #include "ipahal_i.h"
 #include "ipa_common_i.h"
-#include "ipa_i.h"
 
 /* SRAM OFFSET for empty table */
 #define IPA_EMPTY_SRAM_OFFSET (0x1000)
@@ -2599,23 +2598,23 @@ static int ipa_fltrt_generate_hw_rule_bdy_5_5(enum ipa_ip_type ipt,
 
 	if (ext_hdr) {
 		sz = extra_wrd_i - extra_wrd_start;
-		IPAHAL_DBG_LOW("extra words params sz %d, buf: 0x%s, \n", sz, *buf);
+		IPAHAL_DBG_LOW("extra words params sz %d, buf: 0x%llx, \n", sz, *buf);
 		*buf = ipa_fltrt_copy_mem(extra_wrd_start, *buf, sz);
-		IPAHAL_DBG_LOW("After extra copy *buf 0x%s\n", *buf);
+		IPAHAL_DBG_LOW("After extra copy *buf 0x%llx\n", *buf);
 		*buf = ipa_pad_to_64(*buf);
 	} else {
 		extra_wrd_i = ipa_pad_to_64(extra_wrd_i);
 		sz = extra_wrd_i - extra_wrd_start;
-		IPAHAL_DBG_LOW("extra words params sz %d, buf: 0x%s, \n", sz, *buf);
+		IPAHAL_DBG_LOW("extra words params sz %d, buf: 0x%llx, \n", sz, *buf);
 		*buf = ipa_fltrt_copy_mem(extra_wrd_start, *buf, sz);	
 	}
-	IPAHAL_DBG_LOW("Updated *buf 0x%s\n", *buf);
+	IPAHAL_DBG_LOW("Updated *buf 0x%llx\n", *buf);
 
 	rest_wrd_i = ipa_pad_to_64(rest_wrd_i);
 	sz = rest_wrd_i - rest_wrd_start;
 	IPAHAL_DBG_LOW("non extra words params sz %d\n", sz);
 	*buf = ipa_fltrt_copy_mem(rest_wrd_start, *buf, sz);
-	IPAHAL_DBG_LOW("After rest copy *buf 0x%s\n", *buf);
+	IPAHAL_DBG_LOW("After rest copy *buf 0x%llx\n", *buf);
 
 fail_err_check:
 	kfree(rest_wrd_buf);
@@ -4897,7 +4896,6 @@ int ipahal_rt_generate_empty_img(u32 tbls_num, u32 hash_hdr_size,
 	u64 addr;
 	struct ipahal_fltrt_obj *obj;
 	int flag;
-	uint8_t retry_count = 0;
 
 	IPAHAL_DBG("Entry\n");
 
@@ -4927,13 +4925,8 @@ int ipahal_rt_generate_empty_img(u32 tbls_num, u32 hash_hdr_size,
 	}
 
 	mem->size = tbls_num * obj->tbl_hdr_width;
-
-	for (retry_count = 0; retry_count < MAX_RETRY_ALLOC; retry_count++) {
-		mem->base = dma_alloc_coherent(ipahal_ctx->ipa_pdev, mem->size,
-			&mem->phys_base, flag);
-		if (mem->base)
-			break;
-	}
+	mem->base = dma_alloc_coherent(ipahal_ctx->ipa_pdev, mem->size,
+		&mem->phys_base, flag);
 	if (!mem->base) {
 		IPAHAL_ERR("fail to alloc DMA buff of size %d\n", mem->size);
 		return -ENOMEM;
@@ -4971,7 +4964,6 @@ int ipahal_flt_generate_empty_img(u32 tbls_num, u32 hash_hdr_size,
 	u64 addr;
 	struct ipahal_fltrt_obj *obj;
 	int flag;
-	uint8_t retry_count = 0;
 
 	IPAHAL_DBG("Entry - ep_bitmap 0x%llx\n", ep_bitmap);
 
@@ -5015,13 +5007,8 @@ int ipahal_flt_generate_empty_img(u32 tbls_num, u32 hash_hdr_size,
 	mem->size = tbls_num * obj->tbl_hdr_width;
 	if (ep_bitmap)
 		mem->size += obj->tbl_hdr_width;
-
-	for (retry_count = 0; retry_count < MAX_RETRY_ALLOC; retry_count++) {
-		mem->base = dma_alloc_coherent(ipahal_ctx->ipa_pdev, mem->size,
-			&mem->phys_base, flag);
-		if (mem->base)
-			break;
-	}
+	mem->base = dma_alloc_coherent(ipahal_ctx->ipa_pdev, mem->size,
+		&mem->phys_base, flag);
 	if (!mem->base) {
 		IPAHAL_ERR("fail to alloc DMA buff of size %d\n", mem->size);
 		return -ENOMEM;

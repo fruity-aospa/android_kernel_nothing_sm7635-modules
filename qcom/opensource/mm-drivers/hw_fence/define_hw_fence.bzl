@@ -1,14 +1,9 @@
 load("//build/kernel/kleaf:kernel.bzl", "ddk_module", "ddk_submodule")
 load("//build/bazel_common_rules/dist:dist.bzl", "copy_to_dist_dir")
-load("//vendor/qcom/kernel:target_variants.bzl", "get_all_variants")
+load("//msm-kernel:target_variants.bzl", "get_all_variants")
 
 def _define_module(target, variant):
     tv = "{}_{}".format(target, variant)
-    if target in [ "pineapple" ]:
-        target_config = "defconfig"
-    else:
-        target_config = "{}_defconfig".format(target)
-
     ddk_module(
         name = "{}_msm_hw_fence".format(tv),
         srcs = [
@@ -17,27 +12,22 @@ def _define_module(target, variant):
             "src/hw_fence_drv_priv.c",
             "src/hw_fence_drv_utils.c",
             "src/msm_hw_fence.c",
+            "src/msm_hw_fence_synx_translation.c",
         ],
         out = "msm_hw_fence.ko",
-        defconfig = target_config,
+        defconfig = "defconfig",
         kconfig = "Kconfig",
         conditional_srcs = {
             "CONFIG_DEBUG_FS": {
                 True: ["src/hw_fence_ioctl.c"],
             },
-            "CONFIG_QTI_HW_FENCE_USE_SYNX" : {
-                True: [
-                    "src/msm_hw_fence_synx_translation.c",
-                    "src/hw_fence_drv_interop.c",
-                ]
-            },
         },
         deps = [
-            "//vendor/qcom/kernel:all_headers",
-            "//vendor/qcom/sm8750-modules/qcom/opensource/synx-kernel:synx_headers",
-            "//vendor/qcom/sm8750-modules/qcom/opensource/mm-drivers:mm_drivers_headers",
+            "//msm-kernel:all_headers",
+            "//vendor/qcom/opensource/synx-kernel:synx_headers",
+            "//vendor/qcom/opensource/mm-drivers:mm_drivers_headers",
         ],
-        kernel_build = "//vendor/qcom/kernel:{}".format(tv),
+        kernel_build = "//msm-kernel:{}".format(tv),
     )
 
     copy_to_dist_dir(

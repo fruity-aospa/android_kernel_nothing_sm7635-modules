@@ -27,8 +27,9 @@
 #include "msm_vidc_iris2.h"
 #endif
 #if defined(CONFIG_MSM_VIDC_PINEAPPLE)
-#include "msm_vidc_pineapple.h"
-#include "msm_vidc_iris33.h"
+#include "../../pineapple/inc/msm_vidc_pineapple.h"
+#include "../../cliffs/inc/msm_vidc_cliffs.h"
+#include "../../../variant/iris33/inc/msm_vidc_iris33.h"
 #endif
 #if defined(CONFIG_MSM_VIDC_KALAMA)
 #include "msm_vidc_kalama.h"
@@ -219,6 +220,11 @@ static const struct msm_vidc_compat_handle compat_handle[] = {
 	{
 		.compat                     = "qcom,sm8650-vidc-v2",
 		.init_platform              = msm_vidc_init_platform_pineapple,
+		.init_iris                  = msm_vidc_init_iris33,
+	},
+	{
+		.compat                     = "qcom,cliffs-vidc",
+		.init_platform              = msm_vidc_init_platform_cliffs,
 		.init_iris                  = msm_vidc_init_iris33,
 	},
 #endif

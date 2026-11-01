@@ -17,7 +17,6 @@
 #include <linux/platform_device.h>
 #include <linux/i2c.h>
 #include <linux/regulator/consumer.h>
-#include <linux/pinctrl/consumer.h>
 #include <linux/debugfs.h>
 #include <linux/of_fdt.h>
 

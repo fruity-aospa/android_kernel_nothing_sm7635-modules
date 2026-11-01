@@ -1,8 +1,8 @@
 load(":securemsm_kernel.bzl", "define_consolidate_gki_modules")
 
-def define_blair():
+def define_niobe():
     define_consolidate_gki_modules(
-        target = "blair",
+        target = "niobe",
         modules = [
             "smcinvoke_dlkm",
             "tz_log_dlkm",
@@ -12,13 +12,10 @@ def define_blair():
             "qrng_dlkm",
             "qcrypto-msm_dlkm",
             "smmu_proxy_dlkm",
-            "qseecom_dlkm",
-	    "seccam_test_driver",
-	    "hdcp2p2_test",
-	    "tornado_mod",
+            "qseecom_dlkm"
         ],
         extra_options = [
             "CONFIG_QCOM_SMCINVOKE",
-            "CONFIG_QSEECOM",
+	    "CONFIG_QSEECOM_COMPAT",
         ],
     )

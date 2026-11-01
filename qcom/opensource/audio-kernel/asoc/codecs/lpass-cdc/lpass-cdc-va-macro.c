@@ -1144,8 +1144,8 @@ static int lpass_cdc_va_macro_tx_mixer_get(struct snd_kcontrol *kcontrol,
 		snd_soc_dapm_kcontrol_widget(kcontrol);
 	struct snd_soc_component *component =
 				snd_soc_dapm_to_component(widget->dapm);
-	struct soc_mixer_control *mixer =
-		((struct soc_mixer_control *)kcontrol->private_value);
+	struct soc_multi_mixer_control *mixer =
+		((struct soc_multi_mixer_control *)kcontrol->private_value);
 	u32 dai_id = widget->shift;
 	u32 dec_id = mixer->shift;
 	struct device *va_dev = NULL;
@@ -1170,8 +1170,8 @@ static int lpass_cdc_va_macro_tx_mixer_put(struct snd_kcontrol *kcontrol,
 	struct snd_soc_component *component =
 				snd_soc_dapm_to_component(widget->dapm);
 	struct snd_soc_dapm_update *update = NULL;
-	struct soc_mixer_control *mixer =
-		((struct soc_mixer_control *)kcontrol->private_value);
+	struct soc_multi_mixer_control *mixer =
+		((struct soc_multi_mixer_control *)kcontrol->private_value);
 	u32 dai_id = widget->shift;
 	u32 dec_id = mixer->shift;
 	u32 enable = ucontrol->value.integer.value[0];
@@ -2297,10 +2297,10 @@ static void lpass_cdc_va_macro_add_child_devices(struct work_struct *work)
 			va_swr_master_node = true;
 
 		if (va_swr_master_node)
-			strscpy(plat_dev_name, "va_swr_ctrl",
+			strlcpy(plat_dev_name, "va_swr_ctrl",
 				(LPASS_CDC_VA_MACRO_SWR_STRING_LEN - 1));
 		else
-			strscpy(plat_dev_name, node->name,
+			strlcpy(plat_dev_name, node->name,
 				(LPASS_CDC_VA_MACRO_SWR_STRING_LEN - 1));
 
 		pdev = platform_device_alloc(plat_dev_name, -1);

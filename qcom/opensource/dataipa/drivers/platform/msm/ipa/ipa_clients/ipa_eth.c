@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2020, The Linux Foundation. All rights reserved.
- *
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/msm_ipa.h>
@@ -946,10 +944,10 @@ int ipa_eth_client_reg_intf(struct ipa_eth_intf_info *intf)
 	}
 	INIT_LIST_HEAD(&new_intf->link);
 #if IPA_ETH_API_VER >= 2
-	strscpy(new_intf->netdev_name, intf->net_dev->name, sizeof(new_intf->netdev_name));
+	strlcpy(new_intf->netdev_name, intf->net_dev->name, sizeof(new_intf->netdev_name));
 	new_intf->hdr_len = intf_hdr[0].hdr_len;
 #else
-	strscpy(new_intf->netdev_name, intf->netdev_name,
+	strlcpy(new_intf->netdev_name, intf->netdev_name,
 		sizeof(new_intf->netdev_name));
 	new_intf->hdr_len = intf->hdr[0].hdr_len;
 #endif
@@ -1016,7 +1014,7 @@ int ipa_eth_client_reg_intf(struct ipa_eth_intf_info *intf)
 #else
 			tx_prop[i].hdr_l2_type = intf->hdr[0].hdr_type;
 #endif
-			strscpy(tx_prop[i].hdr_name, hdr->hdr[IPA_IP_v4].name,
+			strlcpy(tx_prop[i].hdr_name, hdr->hdr[IPA_IP_v4].name,
 				sizeof(tx_prop[i].hdr_name));
 
 			tx_prop[i+1].ip = IPA_IP_v6;
@@ -1026,7 +1024,7 @@ int ipa_eth_client_reg_intf(struct ipa_eth_intf_info *intf)
 #else
 			tx_prop[i+1].hdr_l2_type = intf->hdr[1].hdr_type;
 #endif
-			strscpy(tx_prop[i+1].hdr_name, hdr->hdr[IPA_IP_v6].name,
+			strlcpy(tx_prop[i+1].hdr_name, hdr->hdr[IPA_IP_v6].name,
 				sizeof(tx_prop[i+1].hdr_name));
 		}
 	}
@@ -1081,7 +1079,7 @@ int ipa_eth_client_reg_intf(struct ipa_eth_intf_info *intf)
 
 #if IPA_ETH_API_VER >= 2
 	if (intf->is_conn_evt) {
-		strscpy(msg.name, intf->net_dev->name, sizeof(msg.name));
+		strlcpy(msg.name, intf->net_dev->name, sizeof(msg.name));
 		msg.ifindex = intf->net_dev->ifindex;
 		ipa_eth_client_conn_evt_internal(&msg);
 	}
@@ -1172,7 +1170,7 @@ fail:
 	mutex_unlock(&ipa_eth_ctx->lock);
 #if IPA_ETH_API_VER >= 2
 	if (intf->is_conn_evt) {
-		strscpy(msg.name, intf->net_dev->name, sizeof(msg.name));
+		strlcpy(msg.name, intf->net_dev->name, sizeof(msg.name));
 		msg.ifindex = intf->net_dev->ifindex;
 		ipa_eth_client_disconn_evt_internal(&msg);
 	}

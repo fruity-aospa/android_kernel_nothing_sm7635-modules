@@ -3,7 +3,7 @@
  * QTI CE device driver.
  *
  * Copyright (c) 2010-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/mman.h>
@@ -33,10 +33,6 @@
 #include "qce.h"
 #include "qcedev_smmu.h"
 #include "qcom_crypto_device.h"
-#include <linux/compat.h>
-#if IS_ENABLED(CONFIG_COMPAT)
-#include "compat_qcedev.h"
-#endif
 
 #define CACHE_LINE_SIZE 64
 #define CE_SHA_BLOCK_SIZE SHA256_BLOCK_SIZE
@@ -94,29 +90,6 @@ static const struct of_device_id qcedev_match[] = {
 };
 
 MODULE_DEVICE_TABLE(of, qcedev_match);
-
-#define K_COPY_FROM_USER(err, dst, src, size) \
-	do {\
-		if (!(is_compat_task()))\
-			err = copy_from_user((dst),\
-			(void const __user *)(src),\
-			(size));\
-		else {\
-			memmove((dst), (void *)(src), (size));\
-			err = 0;\
-		} \
-	} while (0)
-
-#define K_COPY_TO_USER(err, dst, src, size) \
-	do {\
-		if (!(is_compat_task()))\
-			err = copy_to_user((void __user *)(dst),\
-			(src), (size));\
-		else {\
-			memmove((void *)(dst), (src), (size));\
-			err = 0;\
-		} \
-	} while (0)
 
 static int qcedev_control_clocks(struct qcedev_control *podev, bool enable)
 {
@@ -261,9 +234,6 @@ static int start_sha_req(struct qcedev_control *podev,
 static const struct file_operations qcedev_fops = {
 	.owner = THIS_MODULE,
 	.unlocked_ioctl = qcedev_ioctl,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl = compat_qcedev_ioctl,
-#endif
 	.open = qcedev_open,
 	.release = qcedev_release,
 };
@@ -558,8 +528,6 @@ void qcedev_offload_cipher_req_cb(void *cookie, unsigned char *icv,
 	if (!areq || !areq->cookie)
 		return;
 	handle = (struct qcedev_handle *) areq->cookie;
-	if (!handle || !handle->cntl)
-		return;
 	podev = handle->cntl;
 	if (!podev)
 		return;
@@ -613,6 +581,9 @@ static int start_offload_cipher_req(struct qcedev_control *podev,
 		case QCEDEV_OFFLOAD_HLOS_HLOS_1:
 		case QCEDEV_OFFLOAD_HLOS_CPB:
 		case QCEDEV_OFFLOAD_HLOS_CPB_1:
+		case QCEDEV_OFFLOAD_HLOS_CPB_2:
+		case QCEDEV_OFFLOAD_HLOS_CPB_3:
+		case QCEDEV_OFFLOAD_HLOS_CPB_4:
 			creq.dir = QCE_DECRYPT;
 			break;
 		case QCEDEV_OFFLOAD_CPB_HLOS:
@@ -2222,9 +2193,9 @@ long qcedev_ioctl(struct file *file,
 	switch (cmd) {
 	case QCEDEV_IOCTL_ENC_REQ:
 	case QCEDEV_IOCTL_DEC_REQ:
-		K_COPY_FROM_USER(err, &qcedev_areq->cipher_op_req,
-				arg, sizeof(struct qcedev_cipher_op_req));
-		if (err) {
+		if (copy_from_user(&qcedev_areq->cipher_op_req,
+				(void __user *)arg,
+				sizeof(struct qcedev_cipher_op_req))) {
 			err = -EFAULT;
 			goto exit_free_qcedev_areq;
 		}
@@ -2239,19 +2210,18 @@ long qcedev_ioctl(struct file *file,
 		err = qcedev_vbuf_ablk_cipher(qcedev_areq, handle);
 		if (err)
 			goto exit_free_qcedev_areq;
-		K_COPY_TO_USER(err, arg,
+		if (copy_to_user((void __user *)arg,
 					&qcedev_areq->cipher_op_req,
-					sizeof(struct qcedev_cipher_op_req));
-		if (err) {
+					sizeof(struct qcedev_cipher_op_req))) {
 			err = -EFAULT;
 			goto exit_free_qcedev_areq;
 		}
 		break;
 
 	case QCEDEV_IOCTL_OFFLOAD_OP_REQ:
-		K_COPY_FROM_USER(err, &qcedev_areq->offload_cipher_op_req,
-				arg, sizeof(struct qcedev_offload_cipher_op_req));
-		if (err) {
+		if (copy_from_user(&qcedev_areq->offload_cipher_op_req,
+				(void __user *)arg,
+				sizeof(struct qcedev_offload_cipher_op_req))) {
 			err = -EFAULT;
 			goto exit_free_qcedev_areq;
 		}
@@ -2266,10 +2236,9 @@ long qcedev_ioctl(struct file *file,
 		if (err)
 			goto exit_free_qcedev_areq;
 
-		K_COPY_TO_USER(err, arg,
+		if (copy_to_user((void __user *)arg,
 				&qcedev_areq->offload_cipher_op_req,
-				sizeof(struct qcedev_offload_cipher_op_req));
-		if (err) {
+				sizeof(struct qcedev_offload_cipher_op_req))) {
 			err = -EFAULT;
 			goto exit_free_qcedev_areq;
 		}
@@ -2279,9 +2248,9 @@ long qcedev_ioctl(struct file *file,
 		{
 		struct scatterlist sg_src;
 
-		K_COPY_FROM_USER(err, &qcedev_areq->sha_op_req,
-					arg, sizeof(struct qcedev_sha_op_req));
-		if (err) {
+		if (copy_from_user(&qcedev_areq->sha_op_req,
+					(void __user *)arg,
+					sizeof(struct qcedev_sha_op_req))) {
 			err = -EFAULT;
 			goto exit_free_qcedev_areq;
 		}
@@ -2298,9 +2267,8 @@ long qcedev_ioctl(struct file *file,
 			goto exit_free_qcedev_areq;
 		}
 		mutex_unlock(&hash_access_lock);
-		K_COPY_TO_USER(err, arg, &qcedev_areq->sha_op_req,
-					sizeof(struct qcedev_sha_op_req));
-		if (err) {
+		if (copy_to_user((void __user *)arg, &qcedev_areq->sha_op_req,
+					sizeof(struct qcedev_sha_op_req))) {
 			err = -EFAULT;
 			goto exit_free_qcedev_areq;
 		}
@@ -2317,9 +2285,9 @@ long qcedev_ioctl(struct file *file,
 		{
 		struct scatterlist sg_src;
 
-		K_COPY_FROM_USER(err, &qcedev_areq->sha_op_req,
-					arg, sizeof(struct qcedev_sha_op_req));
-		if (err) {
+		if (copy_from_user(&qcedev_areq->sha_op_req,
+					(void __user *)arg,
+					sizeof(struct qcedev_sha_op_req))) {
 			err = -EFAULT;
 			goto exit_free_qcedev_areq;
 		}
@@ -2362,9 +2330,8 @@ long qcedev_ioctl(struct file *file,
 				&handle->sha_ctxt.digest[0],
 				handle->sha_ctxt.diglen);
 		mutex_unlock(&hash_access_lock);
-		K_COPY_TO_USER(err, arg, &qcedev_areq->sha_op_req,
-					sizeof(struct qcedev_sha_op_req));
-		if (err) {
+		if (copy_to_user((void __user *)arg, &qcedev_areq->sha_op_req,
+					sizeof(struct qcedev_sha_op_req))) {
 			err = -EFAULT;
 			goto exit_free_qcedev_areq;
 		}
@@ -2378,9 +2345,9 @@ long qcedev_ioctl(struct file *file,
 			err = -EINVAL;
 			goto exit_free_qcedev_areq;
 		}
-		K_COPY_FROM_USER(err, &qcedev_areq->sha_op_req,
-					arg, sizeof(struct qcedev_sha_op_req));
-		if (err) {
+		if (copy_from_user(&qcedev_areq->sha_op_req,
+					(void __user *)arg,
+					sizeof(struct qcedev_sha_op_req))) {
 			err = -EFAULT;
 			goto exit_free_qcedev_areq;
 		}
@@ -2408,9 +2375,8 @@ long qcedev_ioctl(struct file *file,
 				&handle->sha_ctxt.digest[0],
 				handle->sha_ctxt.diglen);
 		mutex_unlock(&hash_access_lock);
-		K_COPY_TO_USER(err, arg, &qcedev_areq->sha_op_req,
-					sizeof(struct qcedev_sha_op_req));
-		if (err) {
+		if (copy_to_user((void __user *)arg, &qcedev_areq->sha_op_req,
+					sizeof(struct qcedev_sha_op_req))) {
 			err = -EFAULT;
 			goto exit_free_qcedev_areq;
 		}
@@ -2421,9 +2387,9 @@ long qcedev_ioctl(struct file *file,
 		{
 		struct scatterlist sg_src;
 
-		K_COPY_FROM_USER(err, &qcedev_areq->sha_op_req,
-					arg, sizeof(struct qcedev_sha_op_req));
-		if (err) {
+		if (copy_from_user(&qcedev_areq->sha_op_req,
+					(void __user *)arg,
+					sizeof(struct qcedev_sha_op_req))) {
 			err = -EFAULT;
 			goto exit_free_qcedev_areq;
 		}
@@ -2457,9 +2423,8 @@ long qcedev_ioctl(struct file *file,
 				&handle->sha_ctxt.digest[0],
 				handle->sha_ctxt.diglen);
 		mutex_unlock(&hash_access_lock);
-		K_COPY_TO_USER(err, arg, &qcedev_areq->sha_op_req,
-					sizeof(struct qcedev_sha_op_req));
-		if (err) {
+		if (copy_to_user((void __user *)arg, &qcedev_areq->sha_op_req,
+					sizeof(struct qcedev_sha_op_req))) {
 			err = -EFAULT;
 			goto exit_free_qcedev_areq;
 		}
@@ -2472,9 +2437,8 @@ long qcedev_ioctl(struct file *file,
 			struct qcedev_map_buf_req map_buf = { {0} };
 			int i = 0;
 
-			K_COPY_FROM_USER(err, &map_buf,
-							arg, sizeof(map_buf));
-			if (err) {
+			if (copy_from_user(&map_buf,
+					(void __user *)arg, sizeof(map_buf))) {
 				err = -EFAULT;
 				goto exit_free_qcedev_areq;
 			}
@@ -2503,9 +2467,8 @@ long qcedev_ioctl(struct file *file,
 					__func__, vaddr, map_buf.fd[i]);
 			}
 
-			K_COPY_TO_USER(err, arg, &map_buf,
-					sizeof(map_buf));
-			if (err) {
+			if (copy_to_user((void __user *)arg, &map_buf,
+					sizeof(map_buf))) {
 				err = -EFAULT;
 				goto exit_free_qcedev_areq;
 			}
@@ -2517,9 +2480,8 @@ long qcedev_ioctl(struct file *file,
 			struct qcedev_unmap_buf_req unmap_buf = { { 0 } };
 			int i = 0;
 
-			K_COPY_FROM_USER(err, &unmap_buf,
-							arg, sizeof(unmap_buf));
-			if (err) {
+			if (copy_from_user(&unmap_buf,
+				(void __user *)arg, sizeof(unmap_buf))) {
 				err = -EFAULT;
 				goto exit_free_qcedev_areq;
 			}
@@ -2742,25 +2704,18 @@ static int qcedev_probe(struct platform_device *pdev)
 static int qcedev_remove(struct platform_device *pdev)
 {
 	struct qcedev_control *podev;
-	int ret = 0;
 
 	podev = platform_get_drvdata(pdev);
 	if (!podev)
 		return 0;
 
 	qcedev_ce_high_bw_req(podev, true);
-	if (podev->qce) {
+	if (podev->qce)
 		qce_close(podev->qce);
-		podev->qce = NULL; /* prevent use-after-free */
-	}
+	qcedev_ce_high_bw_req(podev, false);
 
-	/* qce_close() already tore down BAM/SPS and disabled clocks. */
-	if (podev->icc_path) {
-		ret = icc_set_bw(podev->icc_path, 0, 0);
-		if (ret)
-			pr_err("%s: icc_set_bw failed, ret = %d", __func__, ret);
+	if (podev->icc_path)
 		icc_put(podev->icc_path);
-	}
 	tasklet_kill(&podev->done_tasklet);
 
 	cdev_del(&podev->cdev);

@@ -181,6 +181,7 @@ static struct regmap_irq_chip wcd939x_regmap_irq_chip = {
 	.num_regs = 3,
 	.status_base = WCD939X_INTR_STATUS_0,
 	.mask_base = WCD939X_INTR_MASK_0,
+	.type_base = WCD939X_INTR_LEVEL_0,
 	.ack_base = WCD939X_INTR_CLEAR_0,
 	.use_ack = 1,
 	.runtime_pm = false,
@@ -222,7 +223,7 @@ static int wcd939x_hph_compander_get(struct snd_kcontrol *kcontrol,
 					snd_soc_kcontrol_component(kcontrol);
 	struct wcd939x_priv *wcd939x = snd_soc_component_get_drvdata(component);
 
-	int compander = ((struct soc_mixer_control *)
+	int compander = ((struct soc_multi_mixer_control *)
 			kcontrol->private_value)->shift;
 
 	ucontrol->value.integer.value[0] = wcd939x->compander_enabled[compander];
@@ -237,7 +238,7 @@ static int wcd939x_hph_compander_put(struct snd_kcontrol *kcontrol,
 					snd_soc_kcontrol_component(kcontrol);
 	struct wcd939x_priv *wcd939x = snd_soc_component_get_drvdata(component);
 
-	int compander = ((struct soc_mixer_control *)
+	int compander = ((struct soc_multi_mixer_control *)
 			kcontrol->private_value)->shift;
 
 	int value = ucontrol->value.integer.value[0];
@@ -261,7 +262,7 @@ static int wcd939x_hph_xtalk_put(struct snd_kcontrol *kcontrol,
 					snd_soc_kcontrol_component(kcontrol);
 	struct wcd939x_priv *wcd939x = snd_soc_component_get_drvdata(component);
 
-	int xtalk = ((struct soc_mixer_control *)
+	int xtalk = ((struct soc_multi_mixer_control *)
 			kcontrol->private_value)->shift;
 
 	int value = ucontrol->value.integer.value[0];
@@ -287,7 +288,7 @@ static int wcd939x_hph_xtalk_get(struct snd_kcontrol *kcontrol,
 					snd_soc_kcontrol_component(kcontrol);
 	struct wcd939x_priv *wcd939x = snd_soc_component_get_drvdata(component);
 
-	int xtalk = ((struct soc_mixer_control *)
+	int xtalk = ((struct soc_multi_mixer_control *)
 			kcontrol->private_value)->shift;
 
 	ucontrol->value.integer.value[0] = wcd939x->xtalk_enabled[xtalk];
@@ -3300,9 +3301,9 @@ static int wcd939x_get_compander(struct snd_kcontrol *kcontrol,
 				snd_soc_kcontrol_component(kcontrol);
 	struct wcd939x_priv *wcd939x = snd_soc_component_get_drvdata(component);
 	bool hphr;
-	struct soc_mixer_control *mc;
+	struct soc_multi_mixer_control *mc;
 
-	mc = (struct soc_mixer_control *)(kcontrol->private_value);
+	mc = (struct soc_multi_mixer_control *)(kcontrol->private_value);
 	hphr = mc->shift;
 
 	ucontrol->value.integer.value[0] = hphr ? wcd939x->comp2_enable :
@@ -3318,9 +3319,9 @@ static int wcd939x_set_compander(struct snd_kcontrol *kcontrol,
 	struct wcd939x_priv *wcd939x = snd_soc_component_get_drvdata(component);
 	int value = ucontrol->value.integer.value[0];
 	bool hphr;
-	struct soc_mixer_control *mc;
+	struct soc_multi_mixer_control *mc;
 
-	mc = (struct soc_mixer_control *)(kcontrol->private_value);
+	mc = (struct soc_multi_mixer_control *)(kcontrol->private_value);
 	hphr = mc->shift;
 	if (hphr)
 		wcd939x->comp2_enable = value;
@@ -3511,7 +3512,7 @@ static int wcd939x_tx_master_ch_put(struct snd_kcontrol *kcontrol,
 		return -EINVAL;
 
 	dev_dbg(component->dev, "%s: slave_ch_idx: %d", __func__, slave_ch_idx);
-	dev_dbg(component->dev, "%s: ucontrol->value.enumerated.item[0] = %i\n",
+	dev_dbg(component->dev, "%s: ucontrol->value.enumerated.item[0] = %ld\n",
 			__func__, ucontrol->value.enumerated.item[0]);
 
 	idx = ucontrol->value.enumerated.item[0];

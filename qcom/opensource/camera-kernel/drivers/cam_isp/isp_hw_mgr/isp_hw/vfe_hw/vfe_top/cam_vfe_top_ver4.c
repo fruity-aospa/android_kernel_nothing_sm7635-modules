@@ -326,12 +326,11 @@ static int cam_vfe_top_ver4_set_primary_sof_timer_reg_addr(
 }
 
 static void cam_vfe_top_ver4_check_module_status(
-	uint32_t num_reg, uint64_t *reg_val,
+	uint32_t num_reg, uint32_t *reg_val,
 	struct cam_vfe_top_ver4_debug_reg_info (*status_list)[][8])
 {
 	bool found = false;
-	uint32_t i, j;
-	uint64_t val = 0;
+	uint32_t i, j, val = 0;
 	size_t len = 0;
 	uint8_t log_buf[1024];
 
@@ -487,7 +486,7 @@ static void cam_vfe_top_ver4_print_debug_reg_status(
 	uint32_t                                    i = 0, j;
 	size_t                                      len = 0;
 	uint8_t                                    *log_buf;
-	uint64_t                                   reg_val[CAM_VFE_TOP_DBG_REG_MAX] = {0};
+	uint32_t                                   reg_val[CAM_VFE_TOP_DBG_REG_MAX] = {0};
 	struct cam_hw_soc_info                     *soc_info;
 	void __iomem                               *base;
 
@@ -501,7 +500,7 @@ static void cam_vfe_top_ver4_print_debug_reg_status(
 		for(j = 0; j < 4 && i < num_reg; j++, i++) {
 			val = cam_io_r(base +
 				common_reg->top_debug[i]);
-			reg_val[i] = (uint64_t)val;
+			reg_val[i] = val;
 			CAM_INFO_BUF(CAM_ISP, log_buf, CAM_VFE_LEN_LOG_BUF, &len,
 				"VFE[%u] status %2d : 0x%08x", soc_info->index, i, val);
 		}

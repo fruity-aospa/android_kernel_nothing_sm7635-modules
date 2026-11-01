@@ -25,6 +25,7 @@
 #include <linux/arch_topology.h>
 #include <linux/hash.h>
 #include <linux/msm_ion.h>
+#include <linux/qcom_scm.h>
 #include <linux/ipc_logging.h>
 #include <linux/remoteproc/qcom_rproc.h>
 #include <linux/scatterlist.h>
@@ -56,13 +57,6 @@
 #include <asm/arch_timer.h>
 #include <linux/genalloc.h>
 #include <soc/qcom/socinfo.h>
-#include <linux/version.h>
-
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
-#include <linux/firmware/qcom/qcom_scm.h>
-#else
-#include <linux/qcom_scm.h>
-#endif
 
 #ifdef CONFIG_HIBERNATION
 #include <linux/suspend.h>
@@ -404,17 +398,6 @@ static struct fastrpc_channel_ctx gcinfo[NUM_CHANNELS] = {
 		.cpuinfo_todsp = FASTRPC_CPUINFO_EARLY_WAKEUP,
 		.cpuinfo_status = false,
 	},
-	{
-		.name = "cdsprpc1-smd",
-		.subsys = "cdsp1",
-		.spd = {
-			{
-				.cid = CDSP1_DOMAIN_ID,
-			}
-		},
-		.cpuinfo_todsp = FASTRPC_CPUINFO_EARLY_WAKEUP,
-		.cpuinfo_status = false,
-	},
 };
 
 
@@ -590,7 +573,7 @@ static inline void fastrpc_update_txmsg_buf(struct smq_msg *msg,
 	spin_unlock_irqrestore(&chan->gmsg_log.lock, flags);
 bail:
 	if (err)
-		ADSPRPC_ERR("adsprpc: %s: unable to update txmsg buf (err %d) for ctx: 0x%llx\n",
+		ADSPRPC_ERR("adsprpc: %s: unable to update txmsg buf (err %d) for ctx: 0x%x\n",
 			__func__, err, ctx->msg.invoke.header.ctx);
 }
 
@@ -772,7 +755,7 @@ skip_buf_cache:
 		if (err) {
 			err = -ECHRNG;
 			ADSPRPC_ERR(
-				"invalid channel 0x%x set for session\n",
+				"invalid channel 0x%zx set for session\n",
 				cid);
 			goto bail;
 		}
@@ -988,32 +971,6 @@ static int fastrpc_mmap_remove(struct fastrpc_file *fl, int fd, uintptr_t va,
 	return -ETOOMANYREFS;
 }
 
-static void dma_buf_unmap_attachment_wrap(struct fastrpc_mmap *map)
-{
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6,2,0))
-	dma_buf_unmap_attachment_unlocked(map->attach, map->table,
-		DMA_BIDIRECTIONAL);
-#else
-	dma_buf_unmap_attachment(map->attach, map->table,
-		DMA_BIDIRECTIONAL);
-#endif
-}
-
-static int dma_buf_map_attachment_wrap(struct fastrpc_mmap *map)
-{
-	int err = 0;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6,2,0))
-	VERIFY(err, !IS_ERR_OR_NULL(map->table =
-		dma_buf_map_attachment_unlocked(map->attach,
-		DMA_BIDIRECTIONAL)));
-#else
-	VERIFY(err, !IS_ERR_OR_NULL(map->table =
-		dma_buf_map_attachment(map->attach,
-		DMA_BIDIRECTIONAL)));
-#endif
-	return err;
-}
-
 static void fastrpc_mmap_free(struct fastrpc_mmap *map, uint32_t flags)
 {
 	struct fastrpc_apps *me = &gfa;
@@ -1084,7 +1041,8 @@ static void fastrpc_mmap_free(struct fastrpc_mmap *map, uint32_t flags)
 	} else if (map->flags == FASTRPC_MAP_FD_NOMAP) {
 		trace_fastrpc_dma_unmap(cid, map->phys, map->size);
 		if (!IS_ERR_OR_NULL(map->table))
-			dma_buf_unmap_attachment_wrap(map);
+			dma_buf_unmap_attachment(map->attach, map->table,
+					DMA_BIDIRECTIONAL);
 		if (!IS_ERR_OR_NULL(map->attach))
 			dma_buf_detach(map->buf, map->attach);
 		if (!IS_ERR_OR_NULL(map->buf))
@@ -1117,7 +1075,8 @@ static void fastrpc_mmap_free(struct fastrpc_mmap *map, uint32_t flags)
 		}
 		trace_fastrpc_dma_unmap(cid, map->phys, map->size);
 		if (!IS_ERR_OR_NULL(map->table))
-			dma_buf_unmap_attachment_wrap(map);
+			dma_buf_unmap_attachment(map->attach, map->table,
+					DMA_BIDIRECTIONAL);
 		if (!IS_ERR_OR_NULL(map->attach))
 			dma_buf_detach(map->buf, map->attach);
 		if (!IS_ERR_OR_NULL(map->buf))
@@ -1326,7 +1285,7 @@ static int fastrpc_mmap_create(struct fastrpc_file *fl, int fd, struct dma_buf *
 		}
 	} else if (mflags == FASTRPC_MAP_FD_NOMAP) {
 		if (map->attr & FASTRPC_ATTR_KEEP_MAP) {
-			ADSPRPC_ERR("Invalid attribute 0x%lx for fd %d\n", map->attr, fd);
+			ADSPRPC_ERR("Invalid attribute 0x%x for fd %d\n", map->attr, fd);
 			err = -EINVAL;
 			goto bail;
 		}
@@ -1356,7 +1315,9 @@ static int fastrpc_mmap_create(struct fastrpc_file *fl, int fd, struct dma_buf *
 		}
 
 		map->attach->dma_map_attrs |= DMA_ATTR_SKIP_CPU_SYNC;
-		err = dma_buf_map_attachment_wrap(map);
+		VERIFY(err, !IS_ERR_OR_NULL(map->table =
+			dma_buf_map_attachment(map->attach,
+				DMA_BIDIRECTIONAL)));
 		if (err) {
 			ADSPRPC_ERR(
 			"dma_buf_map_attachment for fd %d for len 0x%zx failed on device %s ret %ld\n",
@@ -1454,7 +1415,9 @@ static int fastrpc_mmap_create(struct fastrpc_file *fl, int fd, struct dma_buf *
 		if (!sess->smmu.coherent)
 			map->attach->dma_map_attrs |= DMA_ATTR_SKIP_CPU_SYNC;
 
-		err = dma_buf_map_attachment_wrap(map);
+		VERIFY(err, !IS_ERR_OR_NULL(map->table =
+			dma_buf_map_attachment(map->attach,
+				DMA_BIDIRECTIONAL)));
 		if (err) {
 			ADSPRPC_ERR(
 			"dma_buf_map_attachment for fd %d failed for len 0x%zx on device %s ret %ld\n",
@@ -1817,7 +1780,7 @@ static int context_build_overlap(struct smq_invoke_ctx *ctx)
 			if (err) {
 				err = -EFAULT;
 				ADSPRPC_ERR(
-					"Invalid address 0x%lx and size %zu\n",
+					"Invalid address 0x%llx and size %zu\n",
 					(uintptr_t)lpra[i].buf.pv,
 					lpra[i].buf.len);
 				goto bail;
@@ -2078,7 +2041,7 @@ static void context_free(struct smq_invoke_ctx *ctx)
 	VERIFY(err, VALID_FASTRPC_CID(cid));
 	if (err) {
 		ADSPRPC_ERR(
-			"invalid channel 0x%x set for session\n",
+			"invalid channel 0x%zx set for session\n",
 								cid);
 		return;
 	}
@@ -2622,7 +2585,7 @@ static int get_args(uint32_t kernel, struct smq_invoke_ctx *ctx)
 		}
 		if (templen > DEBUG_PRINT_SIZE_LIMIT)
 			ADSPRPC_WARN(
-				"user passed non ion buffer size %zu, mend 0x%lx mstart 0x%lx, sc 0x%x  handle 0x%x\n",
+				"user passed non ion buffer size %zu, mend 0x%llx mstart 0x%llx, sc 0x%x  handle 0x%x\n",
 				templen, mend, mstart, sc, ctx->handle);
 		copylen += templen;
 	}
@@ -2694,7 +2657,7 @@ static int get_args(uint32_t kernel, struct smq_invoke_ctx *ctx)
 				if (err) {
 					up_read(&current->mm->mmap_lock);
 					ADSPRPC_ERR(
-						"buffer VA invalid for fd %d, IPA 0x%llx, VA 0x%lx, vma start 0x%lx\n",
+						"buffer VA invalid for fd %d, IPA 0x%llx, VA 0x%llx, vma start 0x%llx\n",
 						map->fd, map->phys, map->va, vma->vm_start);
 					err = -EFAULT;
 					goto bail;
@@ -2704,7 +2667,7 @@ static int get_args(uint32_t kernel, struct smq_invoke_ctx *ctx)
 				VERIFY(err, offset + len <= (uintptr_t)map->size);
 				if (err) {
 					ADSPRPC_ERR(
-						"buffer address is invalid for the fd passed for %d address 0x%lx and size %zu\n",
+						"buffer address is invalid for the fd passed for %d address 0x%llx and size %zu\n",
 						i, (uintptr_t)lpra[i].buf.pv,
 						lpra[i].buf.len);
 					err = -EFAULT;
@@ -2796,7 +2759,7 @@ static int get_args(uint32_t kernel, struct smq_invoke_ctx *ctx)
 		}
 		if (len > DEBUG_PRINT_SIZE_LIMIT)
 			ADSPRPC_DEBUG(
-				"copied non ion buffer sc 0x%x pv 0x%llx, mend 0x%lx mstart 0x%lx, len %zu\n",
+				"copied non ion buffer sc 0x%x pv 0x%llx, mend 0x%llx mstart 0x%llx, len %zu\n",
 				sc, rpra[i].buf.pv,
 				ctx->overps[oix]->mend,
 				ctx->overps[oix]->mstart, len);
@@ -2828,7 +2791,7 @@ static int get_args(uint32_t kernel, struct smq_invoke_ctx *ctx)
 					dma_buf_end_cpu_access(map->buf,
 						DMA_TO_DEVICE);
 					ADSPRPC_DEBUG(
-						"sc 0x%x pv 0x%llx, mend 0x%lx mstart 0x%lx, len %llu size %zu\n",
+						"sc 0x%x pv 0x%llx, mend 0x%llx mstart 0x%llx, len %zu size %zu\n",
 						sc, rpra[i].buf.pv,
 						ctx->overps[oix]->mend,
 						ctx->overps[oix]->mstart,
@@ -2865,7 +2828,7 @@ static int get_args(uint32_t kernel, struct smq_invoke_ctx *ctx)
 						map->buf, DMA_TO_DEVICE, offset,
 						flush_len);
 					ADSPRPC_DEBUG(
-						"sc 0x%x vm_start 0x%lx pv 0x%llx, offset 0x%lx, mend 0x%lx mstart 0x%lx, len %llu size %zu\n",
+						"sc 0x%x vm_start 0x%llx pv 0x%llx, offset 0x%llx, mend 0x%llx mstart 0x%llx, len %zu size %zu\n",
 						sc, vma->vm_start,
 						rpra[i].buf.pv, offset,
 						ctx->overps[oix]->mend,
@@ -2924,7 +2887,7 @@ static int put_args(uint32_t kernel, struct smq_invoke_ctx *ctx,
 				rpra[i].buf.len);
 			if (err) {
 				ADSPRPC_ERR(
-					"Invalid size 0x%llx for output argument %d ret %d\n",
+					"Invalid size 0x%llx for output argument %d ret %ld\n",
 					rpra[i].buf.len, i+1, err);
 				err = -EFAULT;
 				goto bail;
@@ -3009,7 +2972,7 @@ static void inv_args(struct smq_invoke_ctx *ctx)
 					dma_buf_end_cpu_access(map->buf,
 						DMA_TO_DEVICE);
 					ADSPRPC_DEBUG(
-						"sc 0x%x pv 0x%llx, mend 0x%lx mstart 0x%lx, len %llu size %zu\n",
+						"sc 0x%x pv 0x%llx, mend 0x%llx mstart 0x%llx, len %zu size %zu\n",
 						sc, rpra[over].buf.pv,
 						ctx->overps[i]->mend,
 						ctx->overps[i]->mstart,
@@ -3047,7 +3010,7 @@ static void inv_args(struct smq_invoke_ctx *ctx)
 						DMA_TO_DEVICE, offset,
 						inv_len);
 					ADSPRPC_DEBUG(
-						"sc 0x%x vm_start 0x%lx pv 0x%llx, offset 0x%lx, mend 0x%lx mstart 0x%lx, len %llu size %zu\n",
+						"sc 0x%x vm_start 0x%llx pv 0x%llx, offset 0x%llx, mend 0x%llx mstart 0x%llx, len %zu size %zu\n",
 						sc, vma->vm_start,
 						rpra[over].buf.pv,
 						offset, ctx->overps[i]->mend,
@@ -4726,7 +4689,7 @@ static int fastrpc_send_cpuinfo_to_dsp(struct fastrpc_file *fl)
 	if (err) {
 		err = -ECHRNG;
 		ADSPRPC_ERR(
-			"invalid channel 0x%x set for session\n",
+			"invalid channel 0x%zx set for session\n",
 			cid);
 		goto bail;
 	}
@@ -5135,7 +5098,7 @@ static int fastrpc_mmap_on_dsp(struct fastrpc_file *fl, uint32_t flags,
 		if (err) {
 			err = -ECHRNG;
 			ADSPRPC_ERR(
-				"invalid channel 0x%x set for session\n",
+				"invalid channel 0x%zx set for session\n",
 				cid);
 			goto bail;
 		}
@@ -5201,7 +5164,7 @@ static int fastrpc_munmap_on_dsp_rh(struct fastrpc_file *fl, uint64_t phys,
 	if (err) {
 		err = -ECHRNG;
 		ADSPRPC_ERR(
-			"invalid channel 0x%x set for session\n",
+			"invalid channel 0x%zx set for session\n",
 			cid);
 		goto bail;
 	}
@@ -5656,7 +5619,7 @@ int fastrpc_internal_mem_map(struct fastrpc_file *fl,
 		fastrpc_mmap_add_global(map);
 bail:
 	if (err) {
-		ADSPRPC_ERR("failed to map fd %d, len 0x%zx, flags %d, map %pK, err %d\n",
+		ADSPRPC_ERR("failed to map fd %d, len 0x%x, flags %d, map %pK, err %d\n",
 			ud->m.fd, ud->m.length, ud->m.flags, map, err);
 		if (map) {
 			mutex_lock(&fl->map_mutex);
@@ -5759,11 +5722,7 @@ int fastrpc_internal_mmap(struct fastrpc_file *fl,
 		}
 		dma_attr = DMA_ATTR_DELAYED_UNMAP | DMA_ATTR_NO_KERNEL_MAPPING;
 		if (ud->flags == ADSP_MMAP_ADD_PAGES_LLC)
-#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE)
-			dma_attr |= DMA_ATTR_SYS_CACHE;
-#else
 			dma_attr |= DMA_ATTR_SYS_CACHE_ONLY;
-#endif
 		err = fastrpc_buf_alloc(fl, ud->size, dma_attr, ud->flags,
 						USERHEAP_BUF, &rbuf);
 		if (err)
@@ -6044,7 +6003,7 @@ static int fastrpc_session_alloc_secure_memory(
 	mutex_unlock(&chan->smd_mutex);
 	if (err == -EUSERS) {
 		ADSPRPC_WARN(
-			"max concurrent sessions limit (%llu) already reached on %s err %d\n",
+			"max concurrent sessions limit (%d) already reached on %s err %d\n",
 			chan->sesscount, chan->subsys, err);
 	}
 	return err;
@@ -6266,13 +6225,13 @@ static ssize_t fastrpc_debugfs_read(struct file *filp, char __user *buffer,
 			len += scnprintf(fileinfo + len,
 				DEBUGFS_SIZE - len, "%-7s", chan->subsys);
 			len += scnprintf(fileinfo + len,
-				DEBUGFS_SIZE - len, "|%-10llu",
+				DEBUGFS_SIZE - len, "|%-10u",
 				chan->sesscount);
 			len += scnprintf(fileinfo + len,
 				DEBUGFS_SIZE - len, "|%-15d",
 				chan->subsystemstate);
 			len += scnprintf(fileinfo + len,
-				DEBUGFS_SIZE - len, "|%-9llu",
+				DEBUGFS_SIZE - len, "|%-9u",
 				chan->ssrcount);
 			for (j = 0; j < chan->sesscount; j++)
 				sess_used += chan->session[j].used;
@@ -6334,7 +6293,7 @@ static ssize_t fastrpc_debugfs_read(struct file *filp, char __user *buffer,
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
 			"%s %7s %d\n", "sessionid", ":", fl->sessionid);
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
-			"%s %8s %llu\n", "ssrcount", ":", fl->ssrcount);
+			"%s %8s %u\n", "ssrcount", ":", fl->ssrcount);
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
 			"%s %14s %d\n", "pd", ":", fl->pd);
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
@@ -6371,7 +6330,7 @@ static ssize_t fastrpc_debugfs_read(struct file *filp, char __user *buffer,
 		mutex_lock(&fl->map_mutex);
 		hlist_for_each_entry_safe(map, n, &fl->maps, hn) {
 			len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
-				"0x%-20lX|0x%-20llX|0x%-20zu|0x%-17X\n\n",
+				"0x%-20lX|0x%-20llX|0x%-20zu|0x%-17llX\n\n",
 				map->va, map->phys,
 				map->size, map->flags);
 		}
@@ -6417,7 +6376,7 @@ static ssize_t fastrpc_debugfs_read(struct file *filp, char __user *buffer,
 		hlist_for_each_entry_safe(buf, n, &fl->cached_bufs, hn) {
 			len += scnprintf(fileinfo + len,
 				DEBUGFS_SIZE - len,
-				"0x%-17p|0x%-17llX|%-19zu|0x%-17X\n",
+				"0x%-17p|0x%-17llX|%-19zu|0x%-17llX\n",
 				buf->virt, (uint64_t)buf->phys, buf->size, buf->flags);
 		}
 
@@ -6433,7 +6392,7 @@ static ssize_t fastrpc_debugfs_read(struct file *filp, char __user *buffer,
 		hlist_for_each_entry_safe(buf, n, &fl->remote_bufs, hn_rem) {
 			len += scnprintf(fileinfo + len,
 				DEBUGFS_SIZE - len,
-				"0x%-17p|0x%-17llX|%-19zu|0x%-17X\n",
+				"0x%-17p|0x%-17llX|%-19zu|0x%-17llX\n",
 				buf->virt, (uint64_t)buf->phys, buf->size, buf->flags);
 		}
 
@@ -6811,7 +6770,7 @@ int fastrpc_get_info(struct fastrpc_file *fl, uint32_t *info)
 		mutex_unlock(&fl->apps->channel[cid].smd_mutex);
 		if (err == -EUSERS) {
 			ADSPRPC_WARN(
-				"max concurrent sessions limit (%llu) already reached on %s err %d\n",
+				"max concurrent sessions limit (%d) already reached on %s err %d\n",
 				chan->sesscount, chan->subsys, err);
 		}
 		if (err)
@@ -7969,7 +7928,7 @@ static void  fastrpc_print_debug_data(int cid)
 				count <= gmsg_log_iter; i--, count++) {
 			rsp = &chan->gmsg_log.rx_msgs[i].rsp;
 			len += scnprintf(gmsg_log_rx + len, MD_GMSG_BUFFER - len,
-					"ctx: 0x%llx, retval: %d, flags: %d, early_wake_time: %d, version: %d\n",
+					"ctx: 0x%x, retval: %d, flags: %d, early_wake_time: %d, version: %d\n",
 					rsp->ctx, rsp->retval, rsp->flags,
 					rsp->early_wake_time, rsp->version);
 		}
@@ -7980,7 +7939,7 @@ static void  fastrpc_print_debug_data(int cid)
 				i--, count++) {
 			tx_msg = &chan->gmsg_log.tx_msgs[i];
 			len += scnprintf(gmsg_log_tx + len, MD_GMSG_BUFFER - len,
-					"pid: %d, tid: %d, ctx: 0x%llx, handle: 0x%x, sc: 0x%x, addr: 0x%llx, size:%llu\n",
+					"pid: %d, tid: %d, ctx: 0x%x, handle: 0x%x, sc: 0x%x, addr: 0x%x, size:%d\n",
 					tx_msg->msg.pid,
 					tx_msg->msg.tid,
 					tx_msg->msg.invoke.header.ctx,
@@ -8076,7 +8035,7 @@ static int fastrpc_restart_notifier_cb(struct notifier_block *nb,
 			mutex_unlock(&me->channel[cid].smd_mutex);
 			ktime_get_real_ts64(&startT);
 			fastrpc_ramdump_collection(cid);
-			pr_info("adsprpc: %s: fastrpc ramdump finished in %lld (us)\n",
+			pr_info("adsprpc: %s: fastrpc ramdump finished in %lu (us)\n",
 				__func__, getnstimediff(&startT));
 		}
 		break;
@@ -8310,13 +8269,8 @@ static int fastrpc_cb_probe(struct device *dev)
 			goto iommu_map_bail;
 		}
 		/* Map the allocated memory with fixed IOVA and is shared to remote subsystem */
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
-		err = iommu_map_sg(domain, frpc_gen_addr_pool[0], sgt.sgl,
-					sgt.nents, IOMMU_READ | IOMMU_WRITE | IOMMU_CACHE, GFP_KERNEL);
-#else
 		err = iommu_map_sg(domain, frpc_gen_addr_pool[0], sgt.sgl,
 					sgt.nents, IOMMU_READ | IOMMU_WRITE | IOMMU_CACHE);
-#endif
 		if (err < 0) {
 			ADSPRPC_ERR("iommu_map_sg failed with err %d", err);
 			goto iommu_map_bail;
@@ -9167,11 +9121,7 @@ static int __init fastrpc_device_init(void)
 				NUM_DEVICES));
 	if (err)
 		goto cdev_init_bail;
-#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
-	me->class = class_create("fastrpc");
-#else
 	me->class = class_create(THIS_MODULE, "fastrpc");
-#endif
 	VERIFY(err, !IS_ERR(me->class));
 	if (err)
 		goto class_create_bail;
@@ -9247,7 +9197,7 @@ static int __init fastrpc_device_init(void)
 			}
 		}
 		if (IS_ERR_OR_NULL(me->channel[i].handle))
-			pr_warn("adsprpc: %s: SSR notifier register failed for %s with err %ld\n",
+			pr_warn("adsprpc: %s: SSR notifier register failed for %s with err %d\n",
 				__func__, gcinfo[i].subsys,
 				PTR_ERR(me->channel[i].handle));
 		else

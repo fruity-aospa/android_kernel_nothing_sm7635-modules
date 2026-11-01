@@ -18,14 +18,14 @@
 #ifndef RMNET_TRACE_INCLUDE_PATH
 #if defined(CONFIG_RMNET_LA_PLATFORM)
 #ifdef CONFIG_ARCH_KHAJE
-#define RMNET_TRACE_INCLUDE_PATH ../../../../../vendor/qcom/opensource/datarmnet/core
+#define RMNET_TRACE_INCLUDE_PATH ../../../../../sm7635-modules/qcom/opensource/datarmnet/core
 #else
-#define RMNET_TRACE_INCLUDE_PATH ../../../../vendor/qcom/opensource/datarmnet/core
+#define RMNET_TRACE_INCLUDE_PATH ../../../../sm7635-modules/qcom/opensource/datarmnet/core
 #endif /* CONFIG_ARCH_KHAJE */
 #elif defined(__arch_um__)
 #define RMNET_TRACE_INCLUDE_PATH ../../datarmnet/core
 #else
-#define RMNET_TRACE_INCLUDE_PATH ../../../../../../../datarmnet/core
+#define RMNET_TRACE_INCLUDE_PATH ../../../../sm7635-modules/qcom/opensource/datarmnet/core
 #endif /* defined(CONFIG_RMNET_LA_PLATFORM) */
 #endif /* RMNET_TRACE_INCLUDE_PATH */
 
@@ -113,7 +113,7 @@ TRACE_EVENT(dfc_flow_check,
 	),
 
 	TP_fast_assign(
-		__assign_str(dev_name, name);
+		__assign_str(dev_name, name)
 		__entry->bearer_id = bearer_id;
 		__entry->len = len;
 		__entry->mark = mark;
@@ -142,7 +142,7 @@ TRACE_EVENT(dfc_flow_info,
 	),
 
 	TP_fast_assign(
-		__assign_str(dev_name, name);
+		__assign_str(dev_name, name)
 		__entry->bid = bearer_id;
 		__entry->fid = flow_id;
 		__entry->ip = ip_type;
@@ -347,7 +347,7 @@ TRACE_EVENT(dfc_ll_switch,
 	),
 
 	TP_fast_assign(
-		__assign_str(cmd_str, cmd);
+		__assign_str(cmd_str, cmd)
 		__entry->type = type;
 		__entry->num_bearer = num_bearer;
 		memcpy(__get_dynamic_array(bearers), bearers, num_bearer);

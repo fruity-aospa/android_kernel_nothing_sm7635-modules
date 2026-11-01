@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
- *
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 #include <linux/debugfs.h>
@@ -672,7 +671,7 @@ int ipa_pm_init(struct ipa_pm_init_params *params)
 
 	/* Populate exception list*/
 	for (i = 0; i < params->exception_size; i++) {
-		strscpy(clk_scaling->exception_list[i].clients,
+		strlcpy(clk_scaling->exception_list[i].clients,
 			params->exceptions[i].usecase, IPA_PM_MAX_EX_CL);
 		IPA_PM_DBG("Usecase: %s\n", params->exceptions[i].usecase);
 
@@ -701,7 +700,7 @@ int ipa_pm_init(struct ipa_pm_init_params *params)
 	/*Adding ipa3_ctx pointer to minidump list*/
 	mini_dump = (struct ipa_minidump_data *)kzalloc(sizeof(struct ipa_minidump_data), GFP_KERNEL);
 	if (mini_dump != NULL) {
-		strscpy(mini_dump->data.owner, "ipa_pm_ctx", sizeof(mini_dump->data.owner));
+		strlcpy(mini_dump->data.owner, "ipa_pm_ctx", sizeof(mini_dump->data.owner));
 		mini_dump->data.vaddr = (unsigned long)(ipa_pm_ctx);
 		mini_dump->data.size = sizeof(*ipa_pm_ctx);
 		list_add(&mini_dump->entry, &ipa3_ctx->minidump_list_head);
@@ -785,7 +784,7 @@ int ipa_pm_register(struct ipa_pm_register_params *params, u32 *hdl)
 	INIT_WORK(&client->activate_work, activate_work_func);
 
 	/* populate fields */
-	strscpy(client->name, params->name, IPA_PM_MAX_EX_CL);
+	strlcpy(client->name, params->name, IPA_PM_MAX_EX_CL);
 	client->callback = params->callback;
 	client->callback_params = params->user_data;
 	client->group = params->group;

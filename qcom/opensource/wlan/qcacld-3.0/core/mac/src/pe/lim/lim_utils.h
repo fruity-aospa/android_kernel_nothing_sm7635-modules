@@ -1054,6 +1054,7 @@ QDF_STATUS lim_send_ies_per_band(struct mac_context *mac_ctx,
 
 /**
  * lim_update_connect_rsn_ie() - Update the connection RSN IE
+ * @mac_ctx: MAC context
  * @session: PE session
  * @rsn_ie_buf: RSN IE buffer
  * @pmksa: PMKSA entry for the connecting AP
@@ -1061,7 +1062,8 @@ QDF_STATUS lim_send_ies_per_band(struct mac_context *mac_ctx,
  * Return: None
  */
 void
-lim_update_connect_rsn_ie(struct pe_session *session, uint8_t *rsn_ie_buf,
+lim_update_connect_rsn_ie(struct mac_context *mac_ctx,
+			  struct pe_session *session, uint8_t *rsn_ie_buf,
 			  struct wlan_crypto_pmksa *pmksa);
 
 /**
@@ -1543,7 +1545,7 @@ void lim_update_session_he_capable_chan_switch(struct mac_context *mac,
  * Return: None
  */
 void lim_set_he_caps(struct mac_context *mac, uint8_t *ie_start,
-		     uint32_t num_bytes, uint8_t band, uint8_t vdev_id);
+		     uint32_t num_bytes, uint8_t band);
 
 /**
  * lim_send_he_caps_ie() - gets HE capability and send to firmware via wma
@@ -1778,9 +1780,9 @@ void lim_update_session_he_capable_chan_switch(struct mac_context *mac,
 {
 }
 
-static inline void lim_set_he_caps(struct mac_context *mac, uint8_t *ie_start,
-				   uint32_t num_bytes, uint8_t band,
-				   uint8_t vdev_id)
+static inline void lim_set_he_caps(struct mac_context *mac, struct pe_session *session,
+				   uint8_t *ie_start, uint32_t num_bytes,
+				   uint8_t band)
 {
 }
 

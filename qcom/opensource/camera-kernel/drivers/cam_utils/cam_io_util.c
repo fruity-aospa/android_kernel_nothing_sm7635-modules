@@ -2,7 +2,6 @@
 /*
  * Copyright (c) 2011-2014, 2017-2018, 2020, The Linux Foundation.
  * All rights reserved.
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/delay.h>
@@ -243,10 +242,9 @@ int cam_io_dump(void __iomem *base_addr, uint32_t start_offset, int size)
 	char          line_str[128];
 	char         *p_str;
 	int           i;
-	int           bytes_written, used_size;
 	uint32_t      data;
 
-	CAM_DBG(CAM_IO_DUMP, "addr=%pK offset=0x%x size=%d",
+	CAM_DBG(CAM_IO_ACCESS, "addr=%pK offset=0x%x size=%d",
 		base_addr, start_offset, size);
 
 	if (!base_addr || (size <= 0))
@@ -254,29 +252,23 @@ int cam_io_dump(void __iomem *base_addr, uint32_t start_offset, int size)
 
 	line_str[0] = '\0';
 	p_str = line_str;
-	used_size = 0;
 	for (i = 0; i < size; i++) {
 		if (i % NUM_REGISTER_PER_LINE == 0) {
-			bytes_written = scnprintf(p_str,
-				sizeof(line_str) - used_size, "0x%08x: ",
+			snprintf(p_str, 12, "0x%08x: ",
 				REG_OFFSET(start_offset, i));
-			p_str += bytes_written;
-			used_size += bytes_written;
+			p_str += 11;
 		}
 		data = readl_relaxed(base_addr + REG_OFFSET(start_offset, i));
-		bytes_written = scnprintf(p_str, sizeof(line_str) - used_size,
-			"%08x  ", data);
-		p_str += bytes_written;
-		used_size += bytes_written;
+		snprintf(p_str, 10, "%08x  ", data);
+		p_str += 9;
 		if ((i + 1) % NUM_REGISTER_PER_LINE == 0) {
-			CAM_DBG(CAM_IO_DUMP, "%s", line_str);
+			CAM_ERR(CAM_IO_ACCESS, "%s", line_str);
 			line_str[0] = '\0';
 			p_str = line_str;
-			used_size = 0;
 		}
 	}
 	if (line_str[0] != '\0')
-		CAM_DBG(CAM_IO_DUMP, "%s", line_str);
+		CAM_ERR(CAM_IO_ACCESS, "%s", line_str);
 
 	return 0;
 }

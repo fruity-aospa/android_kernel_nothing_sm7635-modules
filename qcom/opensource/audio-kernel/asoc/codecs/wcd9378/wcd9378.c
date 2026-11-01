@@ -258,6 +258,7 @@ static struct regmap_irq_chip wcd9378_regmap_irq_chip = {
 	.num_regs = 3,
 	.status_base = SWRS_SCP_SDCA_INTSTAT_1,
 	.unmask_base = SWRS_SCP_SDCA_INTMASK_1,
+	.type_base = SWRS_SCP_SDCA_INTRTYPE_1,
 	.ack_base = SWRS_SCP_SDCA_INTSTAT_1,
 	.use_ack = 1,
 	.runtime_pm = false,
@@ -1076,7 +1077,7 @@ static int wcd9378_sys_usage_auto_udpate(struct snd_soc_component *component,
 	int i = 0;
 
 	dev_dbg(component->dev,
-		"%s: enter, current sys_usage: %d, sys_usage_status: 0x%lx, sys_usage_bit: %d, set_enable: %d\n",
+		"%s: enter, current sys_usage: %d, sys_usage_status: 0x%x, sys_usage_bit: %d, set_enable: %d\n",
 			__func__, wcd9378->sys_usage,
 			wcd9378->sys_usage_status,
 			sys_usage_bit, set_enable);
@@ -3029,9 +3030,9 @@ static int wcd9378_get_compander(struct snd_kcontrol *kcontrol,
 				snd_soc_kcontrol_component(kcontrol);
 	struct wcd9378_priv *wcd9378 = snd_soc_component_get_drvdata(component);
 	bool hphr;
-	struct soc_mixer_control *mc;
+	struct soc_multi_mixer_control *mc;
 
-	mc = (struct soc_mixer_control *)(kcontrol->private_value);
+	mc = (struct soc_multi_mixer_control *)(kcontrol->private_value);
 	hphr = mc->shift;
 
 	ucontrol->value.integer.value[0] = hphr ? wcd9378->comp2_enable :
@@ -3048,9 +3049,9 @@ static int wcd9378_set_compander(struct snd_kcontrol *kcontrol,
 			snd_soc_component_get_drvdata(component);
 	int value = ucontrol->value.integer.value[0];
 	bool hphr;
-	struct soc_mixer_control *mc;
+	struct soc_multi_mixer_control *mc;
 
-	mc = (struct soc_mixer_control *)(kcontrol->private_value);
+	mc = (struct soc_multi_mixer_control *)(kcontrol->private_value);
 	hphr = mc->shift;
 	if (hphr)
 		wcd9378->comp2_enable = value;
@@ -3203,7 +3204,7 @@ static int wcd9378_tx_master_ch_put(struct snd_kcontrol *kcontrol,
 		return -EINVAL;
 
 	dev_dbg(component->dev, "%s: slave_ch_idx: %d", __func__, slave_ch_idx);
-	dev_dbg(component->dev, "%s: ucontrol->value.enumerated.item[0] = %u\n",
+	dev_dbg(component->dev, "%s: ucontrol->value.enumerated.item[0] = %ld\n",
 			__func__, ucontrol->value.enumerated.item[0]);
 
 	idx = ucontrol->value.enumerated.item[0];

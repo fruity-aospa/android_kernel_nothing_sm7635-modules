@@ -1,7 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only WITH Linux-syscall-note */
 /*
  * Copyright (c) 2019-2020, The Linux Foundation. All rights reserved.
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #ifndef __UAPI_OPE_H__
@@ -209,10 +208,7 @@ struct ope_clk_bw_request_v2 {
 	__u32 rt_flag;
 	__u32 reserved;
 	__u32 num_paths;
-	union {
-		struct cam_axi_per_path_bw_vote   axi_path[1];
-		__DECLARE_FLEX_ARRAY(struct cam_axi_per_path_bw_vote, axi_path_flex);
-	};
+	struct cam_axi_per_path_bw_vote   axi_path[1];
 };
 
 /**

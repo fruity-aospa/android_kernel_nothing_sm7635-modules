@@ -11,11 +11,7 @@
 #include <linux/platform_device.h>
 #include <linux/component.h>
 #include <linux/iommu.h>
-#if KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE
-#include <linux/firmware/qcom/qcom_scm.h>
-#else
 #include <linux/qcom_scm.h>
-#endif
 #include <linux/list_sort.h>
 #if KERNEL_VERSION(6, 1, 0) > LINUX_VERSION_CODE
 #include <linux/dma-iommu.h>
@@ -27,11 +23,8 @@
 #include "cam_cpastop_hw.h"
 #include "cam_smmu_api.h"
 
-#ifdef CONFIG_CSF_2_5_SECURE_CAMERA
-#include <smmu-proxy/linux/qti-smmu-proxy.h>
-#endif
-
 #if KERNEL_VERSION(6, 0, 0) <= LINUX_VERSION_CODE
+#include <smmu-proxy/linux/qti-smmu-proxy.h>
 #include <linux/qcom-dma-mapping.h>
 #endif
 
@@ -55,10 +48,6 @@ MODULE_IMPORT_NS(DMA_BUF);
 #include <linux/IClientEnv.h>
 #include <linux/ITrustedCameraDriver.h>
 #include <linux/CTrustedCameraDriver.h>
-#endif
-
-#if IS_REACHABLE(CONFIG_INTERCONNECT_QCOM)
-#include <linux/interconnect.h>
 #endif
 
 #define IS_CSF25(x, y) ((((x) == 2) && ((y) == 5)) ? 1 : 0)
@@ -86,10 +75,6 @@ void cam_check_iommu_faults(struct iommu_domain *domain,
 static inline int cam_get_ddr_type(void) { return of_fdt_get_ddrtype(); }
 int cam_compat_util_get_dmabuf_va(struct dma_buf *dmabuf, uintptr_t *vaddr);
 void cam_compat_util_put_dmabuf_va(struct dma_buf *dmabuf, void *vaddr);
-struct sg_table *cam_compat_dmabuf_map_attach(
-	struct dma_buf_attachment *attach, enum dma_data_direction dma_dir);
-void cam_compat_dmabuf_unmap_attach(struct dma_buf_attachment *attach,
-	struct sg_table *table, enum dma_data_direction dma_dir);
 void cam_smmu_util_iommu_custom(struct device *dev,
 	dma_addr_t discard_start, size_t discard_length);
 
@@ -130,23 +115,5 @@ unsigned long cam_update_dma_map_attributes(unsigned long attr);
 size_t cam_align_dma_buf_size(size_t len);
 
 int cam_get_subpart_info(uint32_t *part_info, uint32_t max_num_cam);
-
-int cam_iommu_map(struct iommu_domain *domain,
-	size_t firmware_start, phys_addr_t fw_hdl, size_t firmware_len,
-	int prot);
-
-size_t cam_iommu_map_sg(struct iommu_domain *domain,
-	dma_addr_t iova_start, struct scatterlist *sgl, uint64_t orig_nents,
-	int prot);
-
-int16_t cam_get_gpio_counts(struct cam_hw_soc_info *soc_info);
-
-uint16_t cam_get_named_gpio(struct cam_hw_soc_info *soc_info,
-	int index);
-
-#if IS_REACHABLE(CONFIG_INTERCONNECT_QCOM)
-inline struct icc_path *cam_icc_get_path(struct device *dev,
-	const int src_id, const int dst_id, const char *path_name, bool use_path_name);
-#endif
 
 #endif /* _CAM_COMPAT_H_ */

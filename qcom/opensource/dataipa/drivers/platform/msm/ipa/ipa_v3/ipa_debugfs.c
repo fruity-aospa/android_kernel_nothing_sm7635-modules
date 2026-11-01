@@ -2,7 +2,7 @@
 /*
  * Copyright (c) 2012-2021, The Linux Foundation. All rights reserved.
  *
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #ifdef CONFIG_DEBUG_FS
@@ -1556,7 +1556,7 @@ static ssize_t ipa3_read_stats(struct file *file, char __user *ubuf,
 		"flow_enable=%u\n"
 		"flow_disable=%u\n"
 		"rx_page_drop_cnt=%u\n"
-		"lower_order=%llu\n"
+		"lower_order=%u\n"
 		"rmnet_notifier_enabled=%u\n"
 		"num_buff_above_thresh_for_def_pipe_notified=%u\n"
 		"num_buff_below_thresh_for_def_pipe_notified=%u\n"
@@ -3467,9 +3467,9 @@ static ssize_t ipa3_perform_loopback(struct file *file, char __user *ubuf,
 	rt_rule->commit = 1;
 	rt_rule->ip = IPA_IP_v4;
 	rt_lookup.ip = rt_rule->ip;
-	strscpy(rt_rule->rt_tbl_name, "V4_RT_TO_APPS_WAN_CONS",
+	strlcpy(rt_rule->rt_tbl_name, "V4_RT_TO_APPS_WAN_CONS",
 		IPA_RESOURCE_NAME_MAX);
-	strscpy(rt_lookup.name, rt_rule->rt_tbl_name, IPA_RESOURCE_NAME_MAX);
+	strlcpy(rt_lookup.name, rt_rule->rt_tbl_name, IPA_RESOURCE_NAME_MAX);
 	rt_rule->num_rules = 1;
 	rt_rule->rules[0].rule.dst = IPA_CLIENT_APPS_WAN_CONS;
 	rt_rule->rules[0].rule.hashable = true;
@@ -3490,9 +3490,9 @@ static ssize_t ipa3_perform_loopback(struct file *file, char __user *ubuf,
 	rt_rule->commit = 1;
 	rt_rule->ip = IPA_IP_v6;
 	rt_lookup.ip = rt_rule->ip;
-	strscpy(rt_rule->rt_tbl_name, "V6_RT_TO_APPS_WAN_CONS",
+	strlcpy(rt_rule->rt_tbl_name, "V6_RT_TO_APPS_WAN_CONS",
 		IPA_RESOURCE_NAME_MAX);
-	strscpy(rt_lookup.name, rt_rule->rt_tbl_name, IPA_RESOURCE_NAME_MAX);
+	strlcpy(rt_lookup.name, rt_rule->rt_tbl_name, IPA_RESOURCE_NAME_MAX);
 	rt_rule->num_rules = 1;
 	rt_rule->rules[0].rule.dst = IPA_CLIENT_APPS_WAN_CONS;
 	rt_rule->rules[0].rule.hashable = true;
@@ -3700,7 +3700,7 @@ static ssize_t ipa_xr_add_flt_to_wlan(struct file *file,
 		flt_add_req.flt_info[0].dport = dst_port[i];
 		flt_add_req.flt_info[0].protocol = prot[i];
 
-		IPADBG("IPv4 saddr:%u, daddr:%u IPv4 sport:%u, dport:%u protocol:%u\n",
+		IPADBG("IPv4 saddr:%lu, daddr:%lu IPv4 sport:%u, dport:%u protocol:%u\n",
 				flt_add_req.flt_info[0].ipv4_addr.ipv4_saddr,
 				flt_add_req.flt_info[0].ipv4_addr.ipv4_daddr,
 				flt_add_req.flt_info[0].sport,

@@ -221,7 +221,7 @@ static int __cam_isp_ctx_print_event_record(struct cam_isp_context *ctx_isp)
 			}
 			if (record->event_type != CAM_ISP_CTX_EVENT_SHUTTER)
 				len += scnprintf(buf + len, CAM_ISP_CONTEXT_DBG_BUF_LEN - len,
-					"%llu[%lld:%06ld] ", record->req_id, ts.tv_sec,
+					"%llu[%lld:%06lld] ", record->req_id, ts.tv_sec,
 					ts.tv_nsec / NSEC_PER_USEC);
 			else
 				/*
@@ -229,7 +229,7 @@ static int __cam_isp_ctx_print_event_record(struct cam_isp_context *ctx_isp)
 				 * req Id[timestamp] status frmId softs bootts
 				 */
 				len += scnprintf(buf + len, (CAM_ISP_CONTEXT_DBG_BUF_LEN) - len,
-					"%llu[%lld:%06ld] [%d %lld %llu %llu] | ",
+					"%llu[%lld:%06lld] [%d %lld %llu %llu] | ",
 					record->req_id, ts.tv_sec,
 					ts.tv_nsec / NSEC_PER_USEC,
 					record->event.shutter_event.status,
@@ -372,7 +372,7 @@ static void __cam_isp_ctx_req_mini_dump(struct cam_ctx_request *req,
 		if (start_addr + *bytes_updated + bytes_required > end_addr)
 			return;
 
-		io_cfg = (struct cam_buf_io_cfg *)((uint32_t *)&packet->payload_flex +
+		io_cfg = (struct cam_buf_io_cfg *)((uint32_t *)&packet->payload +
 			    packet->io_configs_offset / 4);
 		req_md->io_cfg = (struct cam_buf_io_cfg *)((uint8_t *)start_addr + *bytes_updated);
 		memcpy(req_md->io_cfg, io_cfg, bytes_required);
@@ -8801,11 +8801,6 @@ static int __cam_isp_ctx_process_evt(struct cam_context *ctx,
 		rc =  __cam_isp_ctx_link_resume(ctx);
 		break;
 	case CAM_REQ_MGR_LINK_EVT_SOF_FREEZE:
-		rc = __cam_isp_ctx_trigger_reg_dump(CAM_HW_MGR_CMD_REG_DUMP_ON_ERROR, ctx);
-		if (rc)
-			CAM_ERR(CAM_ISP, "Reg dump on sof freeze failed ctx:%d rc:%d",
-				ctx->ctx_id, rc);
-
 		rc = __cam_isp_ctx_handle_sof_freeze_evt(ctx);
 		break;
 	case CAM_REQ_MGR_LINK_EVT_STALLED: {

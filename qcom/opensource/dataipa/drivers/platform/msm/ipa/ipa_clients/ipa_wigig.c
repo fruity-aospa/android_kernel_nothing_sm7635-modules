@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2018-2020, The Linux Foundation. All rights reserved.
- *
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include "ipa_wigig.h"
@@ -312,7 +310,7 @@ static int ipa_wigig_get_devname(char *netdev_name)
 	entry = list_first_entry(&ipa_wigig_ctx->head_intf_list,
 		struct ipa_wigig_intf_info,
 		link);
-	strscpy(netdev_name, entry->netdev_name, IPA_RESOURCE_NAME_MAX);
+	strlcpy(netdev_name, entry->netdev_name, IPA_RESOURCE_NAME_MAX);
 
 	mutex_unlock(&ipa_wigig_ctx->lock);
 
@@ -367,7 +365,7 @@ int ipa_wigig_reg_intf(
 	}
 
 	INIT_LIST_HEAD(&new_intf->link);
-	strscpy(new_intf->netdev_name, in->netdev_name,
+	strlcpy(new_intf->netdev_name, in->netdev_name,
 		sizeof(new_intf->netdev_name));
 	new_intf->hdr_len = in->hdr_info[0].hdr_len;
 	memcpy(new_intf->netdev_mac, in->netdev_mac, IPA_MAC_ADDR_SIZE);
@@ -405,13 +403,13 @@ int ipa_wigig_reg_intf(
 	 */
 	tx_prop[0].dst_pipe = IPA_CLIENT_WIGIG1_CONS;
 	tx_prop[0].hdr_l2_type = in->hdr_info[0].hdr_type;
-	strscpy(tx_prop[0].hdr_name, hdr->hdr[IPA_IP_v4].name,
+	strlcpy(tx_prop[0].hdr_name, hdr->hdr[IPA_IP_v4].name,
 		sizeof(tx_prop[0].hdr_name));
 
 	tx_prop[1].ip = IPA_IP_v6;
 	tx_prop[1].dst_pipe = IPA_CLIENT_WIGIG1_CONS;
 	tx_prop[1].hdr_l2_type = in->hdr_info[1].hdr_type;
-	strscpy(tx_prop[1].hdr_name, hdr->hdr[IPA_IP_v6].name,
+	strlcpy(tx_prop[1].hdr_name, hdr->hdr[IPA_IP_v6].name,
 		sizeof(tx_prop[1].hdr_name));
 
 	/* populate rx prop */

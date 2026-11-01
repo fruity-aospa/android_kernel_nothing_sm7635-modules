@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #ifndef __HW_FENCE_DRV_UTILS_H
@@ -14,9 +14,9 @@
 
 /**
  * HW_FENCE_MAX_CLIENT_TYPE_CONFIGURABLE:
- * Maximum number of client types with configurable number of sub-clients (e.g. IPE, VPU, IFE, IPA)
+ * Maximum number of client types with configurable number of sub-clients (e.g. IPE, VPU, IFE)
  */
-#define HW_FENCE_MAX_CLIENT_TYPE_CONFIGURABLE 15
+#define HW_FENCE_MAX_CLIENT_TYPE_CONFIGURABLE 10
 
 /**
  * HW_FENCE_MAX_STATIC_CLIENTS_INDEX:
@@ -49,7 +49,7 @@ enum hw_fence_mem_reserve {
 void global_atomic_store(struct hw_fence_driver_data *drv_data, uint64_t *lock, bool val);
 
 /**
- * hw_fence_utils_init_virq() - Initialize doorbell (i.e. vIRQ) for SVM to HLOS signaling
+ * hw_fence_utils_init_virq() - Initialilze doorbell (i.e. vIRQ) for SVM to HLOS signaling
  * @drv_data: hw fence driver data
  *
  * Returns zero if success, otherwise returns negative error code.
@@ -57,30 +57,12 @@ void global_atomic_store(struct hw_fence_driver_data *drv_data, uint64_t *lock, 
 int hw_fence_utils_init_virq(struct hw_fence_driver_data *drv_data);
 
 /**
- * hw_fence_utils_init_soccp_irq() - Initialize interrupt handler for SOCCP to HLOS signaling
- * @drv_data: hw fence driver data
- *
- * Returns zero if success, otherwise returns negative error code.
- */
-int hw_fence_utils_init_soccp_irq(struct hw_fence_driver_data *drv_data);
-
-/**
- * hw_fence_utils_register_soccp_ssr_notifier() - registers rproc ssr notifier for soccp
- * @drv_data: hw fence driver data
- *
- * Returns zero if success, otherwise returns negative error code.
- */
-int hw_fence_utils_register_soccp_ssr_notifier(struct hw_fence_driver_data *drv_data);
-
-/**
- * hw_fence_utils_process_signaled_clients_mask() - Process the mask containing HW Fence client IDs
- *                                                  that HW Fence Driver is responsible for, i.e.
- *                                                  ctrl queue and validation clients.
+ * hw_fence_utils_process_doorbell_mask() - Sends doorbell mask to process the signaled clients
+ *                                          this API is only exported for simulation purposes.
  * @drv_data: hw fence driver data.
- * @mask: mask with signaled clients
+ * @db_flags: doorbell flag
  */
-void hw_fence_utils_process_signaled_clients_mask(struct hw_fence_driver_data *drv_data,
-	u64 mask);
+void hw_fence_utils_process_doorbell_mask(struct hw_fence_driver_data *drv_data, u64 db_flags);
 
 /**
  * hw_fence_utils_alloc_mem() - Allocates the carved-out memory pool that will be used for the HW
@@ -182,25 +164,4 @@ enum hw_fence_client_id hw_fence_utils_get_client_id_priv(struct hw_fence_driver
  */
 int hw_fence_utils_get_queues_num(struct hw_fence_driver_data *drv_data, int client_id);
 
-/**
- * hw_fence_utils_get_skip_fctl_ref() - Returns if client avoids creating fences with fctl
- *                                      refcount initialized.
- *
- * @drv_data: driver data
- * @client_id: hw fence driver client id
- *
- * Returns: number of client queues
- */
-int hw_fence_utils_get_skip_fctl_ref(struct hw_fence_driver_data *drv_data, int client_id);
-
-
-/**
- * hw_fence_utils_set_power_vote() - Sets the power vote for soccp.
- *
- * @drv_data: driver data
- * @state: power state to set
- *
- * Returns: 0 if successful, error if not
- */
-int hw_fence_utils_set_power_vote(struct hw_fence_driver_data *drv_data, bool state);
 #endif /* __HW_FENCE_DRV_UTILS_H */

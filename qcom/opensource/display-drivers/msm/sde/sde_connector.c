@@ -1928,7 +1928,7 @@ static int _sde_connector_set_prop_dyn_transfer_time(struct sde_connector *c_con
 
 	rc = c_conn->ops.update_transfer_time(c_conn->display, val);
 	if (rc)
-		SDE_ERROR_CONN(c_conn, "transfer time update failed, val: %llu, rc %d\n", val, rc);
+		SDE_ERROR_CONN(c_conn, "updating transfer time failed, val: %u, rc %d\n", val, rc);
 
 	return rc;
 }
@@ -2939,7 +2939,7 @@ static ssize_t store_fp_status(struct kobject *kobj,struct kobj_attribute *attr,
 
 static ssize_t show_fp_status(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%lu\n", fp_status);
+	return sprintf(buf, "%d\n", fp_status);
 }
 
 static ssize_t show_brightnessid(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
@@ -3328,7 +3328,6 @@ int sde_connector_esd_status(struct drm_connector *conn)
 
 static void sde_connector_check_status_work(struct work_struct *work)
 {
-	static int esd_fail_count = 0;
 	struct sde_connector *conn;
 	int rc = 0;
 	struct device *dev;
@@ -3356,7 +3355,6 @@ static void sde_connector_check_status_work(struct work_struct *work)
 	if (rc > 0) {
 		u32 interval;
 
-		esd_fail_count = 0;
 		SDE_DEBUG("esd check status success conn_id: %d enc_id: %d\n",
 				conn->base.base.id, conn->encoder->base.id);
 
@@ -3368,14 +3366,6 @@ static void sde_connector_check_status_work(struct work_struct *work)
 		return;
 	}
 
-	esd_fail_count++;
-	if (esd_fail_count < 3) {
-		SDE_ERROR("esd check status failed (attempt %d/3), retrying in 500ms\n", esd_fail_count);
-		schedule_delayed_work(&conn->status_work, msecs_to_jiffies(500));
-		return;
-	}
-
-	esd_fail_count = 0;
 	sde_connector_report_panel_dead(conn, false);
 }
 

@@ -105,6 +105,7 @@ static struct regmap_irq_chip wcd937x_regmap_irq_chip = {
 	.ack_base = WCD937X_DIGITAL_INTR_CLEAR_0,
 	.use_ack = 1,
 	.clear_ack = 1,
+	.type_base = WCD937X_DIGITAL_INTR_LEVEL_0,
 	.runtime_pm = false,
 	.handle_post_irq = wcd937x_handle_post_irq,
 	.irq_drv_data = NULL,
@@ -1754,7 +1755,7 @@ static int wcd937x_get_logical_addr(struct swr_device *swr_dev)
 		ret = swr_get_logical_dev_num(swr_dev, swr_dev->addr, &devnum);
 		if (ret) {
 			dev_err(&swr_dev->dev,
-				"%s get devnum %d for dev addr %llx failed\n",
+				"%s get devnum %d for dev addr %lx failed\n",
 				__func__, devnum, swr_dev->addr);
 			/* retry after 1ms */
 			usleep_range(1000, 1010);
@@ -2086,9 +2087,9 @@ static int wcd937x_get_compander(struct snd_kcontrol *kcontrol,
 				snd_soc_kcontrol_component(kcontrol);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 	bool hphr;
-	struct soc_mixer_control *mc;
+	struct soc_multi_mixer_control *mc;
 
-	mc = (struct soc_mixer_control *)(kcontrol->private_value);
+	mc = (struct soc_multi_mixer_control *)(kcontrol->private_value);
 	hphr = mc->shift;
 
 	ucontrol->value.integer.value[0] = hphr ? wcd937x->comp2_enable :
@@ -2104,9 +2105,9 @@ static int wcd937x_set_compander(struct snd_kcontrol *kcontrol,
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 	int value = ucontrol->value.integer.value[0];
 	bool hphr;
-	struct soc_mixer_control *mc;
+	struct soc_multi_mixer_control *mc;
 
-	mc = (struct soc_mixer_control *)(kcontrol->private_value);
+	mc = (struct soc_multi_mixer_control *)(kcontrol->private_value);
 	hphr = mc->shift;
 	if (hphr)
 		wcd937x->comp2_enable = value;
@@ -2268,7 +2269,7 @@ static int wcd937x_tx_master_ch_put(struct snd_kcontrol *kcontrol,
 		return -EINVAL;
 
 	dev_dbg(component->dev, "%s: slave_ch_idx: %d", __func__, slave_ch_idx);
-	dev_dbg(component->dev, "%s: ucontrol->value.enumerated.item[0] = %u\n",
+	dev_dbg(component->dev, "%s: ucontrol->value.enumerated.item[0] = %ld\n",
 			__func__, ucontrol->value.enumerated.item[0]);
 
 	idx = ucontrol->value.enumerated.item[0];

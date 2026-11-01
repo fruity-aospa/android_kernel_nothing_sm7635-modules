@@ -1644,7 +1644,7 @@ static int cam_context_user_dump(struct cam_context *ctx,
 				local_len = dump_args->offset +
 					sizeof(struct cam_context_dump_header);
 				scnprintf(hdr->tag, CAM_CTXT_DUMP_TAG_MAX_LEN,
-					"%s_OUT_FENCE_REQUEST_APPLIED.%d.%pad.%d:",
+					"%s_OUT_FENCE_REQUEST_APPLIED.%d.%d.%d:",
 					ctx->dev_name,
 					req->out_map_entries[i].resource_handle,
 					&(req->out_map_entries[i].image_buf_addr),
@@ -1685,7 +1685,7 @@ static int cam_context_user_dump(struct cam_context *ctx,
 				local_len = dump_args->offset +
 					sizeof(struct cam_context_dump_header);
 				scnprintf(hdr->tag, CAM_CTXT_DUMP_TAG_MAX_LEN,
-					"%s_OUT_FENCE_REQUEST_PENDING.%d.%pad.%d:",
+					"%s_OUT_FENCE_REQUEST_PENDING.%d.%d.%d:",
 					ctx->dev_name,
 					req->out_map_entries[i].resource_handle,
 					&(req->out_map_entries[i].image_buf_addr),
@@ -1726,7 +1726,7 @@ static int cam_context_user_dump(struct cam_context *ctx,
 				local_len = dump_args->offset +
 					sizeof(struct cam_context_dump_header);
 				scnprintf(hdr->tag, CAM_CTXT_DUMP_TAG_MAX_LEN,
-					"%s_OUT_FENCE_REQUEST_ACTIVE.%d.%pad.%d:",
+					"%s_OUT_FENCE_REQUEST_ACTIVE.%d.%d.%d:",
 					ctx->dev_name,
 					req->out_map_entries[i].resource_handle,
 					&(req->out_map_entries[i].image_buf_addr),
@@ -1926,7 +1926,7 @@ static void __cam_context_req_mini_dump(struct cam_ctx_request *req,
 		if (start_addr + bytes_written + bytes_required > end_addr)
 			goto exit;
 
-		io_cfg = (struct cam_buf_io_cfg *)((uint32_t *)&packet->payload_flex +
+		io_cfg = (struct cam_buf_io_cfg *)((uint32_t *)&packet->payload +
 			packet->io_configs_offset / 4);
 		req_md->io_cfg = (struct cam_buf_io_cfg *)(start_addr + bytes_written);
 		memcpy(req_md->io_cfg, io_cfg, bytes_required);
